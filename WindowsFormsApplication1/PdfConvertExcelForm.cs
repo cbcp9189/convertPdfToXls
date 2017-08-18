@@ -38,16 +38,14 @@ namespace WindowsFormsApplication1
             //获取数据
             Dao dao = new Dao();
             long minId = dao.getMinId();
-            long maxId = dao.getMaxId();
-
-            long jianju = (maxId - minId) / 10;
-            for (int a = 0; a <= 10; a++)
+            int limit = 50;
+            List<AnnouncementEntity> articleList = dao.getAnnouncementList(minId, limit);
+            while (articleList != null && articleList.Count > 0) 
             {
-                long param1 = minId + (a * jianju);
-                long param2 = minId + (a + 1) * jianju;
-              
-                ThreadPool.QueueUserWorkItem(handlePdf, param1+"-"+param2);
-                
+                dealPdfConvertExcel(articleList);
+                Thread.Sleep(1000);
+                minId += 50;
+                articleList = dao.getAnnouncementList(minId, limit);
             }
 
         }
@@ -140,6 +138,7 @@ namespace WindowsFormsApplication1
                             listBoxFiles.Items.Add("success: " + excelpath);
                             //添加对应关系
                             String savePath = excelpath.Substring(excelpath.IndexOf("GSGGFWB"));
+                            listBoxFiles.Items.Add("save path" + savePath);
                             savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), savePath);
                         }
 

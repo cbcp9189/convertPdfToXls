@@ -18,7 +18,7 @@ namespace WindowsFormsApplication1.constant
 
         public static byte WECHAT_ARTICLE_TYPE = 127;
 
-        public static String ANNOUNCEMENT = "GSGGFWB";
+        public static String ANNOUNCEMENT_EXCEL = "excel";
 
         public static String subscriptions = "subscriptions";
 
