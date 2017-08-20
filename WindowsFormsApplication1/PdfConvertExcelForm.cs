@@ -23,8 +23,9 @@ namespace WindowsFormsApplication1
         //static String sourceFolder = @"D:\process\source";
         //static String outputFolder = @"D:\process\output";
         //static String errorFolder = @"D:\process\error";
-        static String sourceFolder = @"W:\juyuan_data\";
+        static String sourceFolder = @"W:/juyuan_data/";
         static String outputFolder = @"W:\excel\";
+        public  Dao dao = new Dao();
         public PdfConvertExcelForm()
         {
             InitializeComponent();
@@ -36,8 +37,7 @@ namespace WindowsFormsApplication1
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
             //获取数据
-            Dao dao = new Dao();
-            long minId = dao.getMinId();
+            long minId = 0;
             int limit = 50;
             List<AnnouncementEntity> articleList = dao.getAnnouncementList(minId, limit);
             while (articleList != null && articleList.Count > 0) 
@@ -88,7 +88,13 @@ namespace WindowsFormsApplication1
                 foreach (AnnouncementEntity ae in articleList)
                 {
                     String pdfPath = sourceFolder + ae.pdfPath.Replace("GSGGFWB/", "");
+               
                     listBoxFiles.Items.Add(pdfPath);
+                    String excelpath = pdfPath.Replace("juyuan_data", "excel/GSGGFWB");
+                    if (File.Exists(excelpath)) {
+                        listBoxFiles.Items.Add(pdfPath+" excel File exist");
+                        continue;
+                    }
                     PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
                     //Set the Source Path 
                     jobEnvelope.SourcePath = pdfPath;
@@ -119,32 +125,22 @@ namespace WindowsFormsApplication1
                     }
                     else
                     {  //生成成功
-                        //This code builds the file name
                         String excelpath = processedJob.SourcePath.Replace("juyuan_data", "excel/GSGGFWB");
-                       
-                        //String wordOutputPath = Path.Combine(outputFolder, pdfpath);
-                       // wordOutputPath = wordOutputPath.Replace("GSGGFWB/", "");
                         String wordTemporaryPath = processedJob.OutputPaths[0];
                         String outputExtension = Path.GetExtension(wordTemporaryPath);
-                       
-                        //This adds the file extention that must match what was chosen above. 
                         excelpath = Path.ChangeExtension(excelpath, outputExtension);
                         listBoxFiles.Items.Add("start convert..." + excelpath);
-                        //For each file in the jobEnvelope copy it to the file path and format above
                         if (File.Exists(wordTemporaryPath))
                         {
                             FileUtil.createDir(Path.GetDirectoryName(excelpath));
                             File.Copy(wordTemporaryPath, excelpath, true);
-                            listBoxFiles.Items.Add("success: " + excelpath);
+                            listBoxFiles.Items.Add(DateTime.Now.ToString()+" success: " + excelpath);
                             //添加对应关系
                             String savePath = excelpath.Substring(excelpath.IndexOf("GSGGFWB"));
-                            listBoxFiles.Items.Add("save path" + savePath);
+                            listBoxFiles.Items.Add("save path: " + savePath);
                             savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), savePath);
                         }
-
                     }
-                    
-
                 }
 
                 
@@ -162,7 +158,6 @@ namespace WindowsFormsApplication1
             {
                 if (ae.pdfPath.Contains(pdfName))
                 {
-                    Dao dao = new Dao();
                     if (!dao.getAnnouncementCount(ae.id))
                     {
                         if (excelPath.Equals(""))
@@ -188,6 +183,8 @@ namespace WindowsFormsApplication1
             String savePath = path.Substring(path.IndexOf("02"));
             Console.WriteLine(savePath);
             listBoxFiles.Items.Add(savePath);
+            String sd = DateTime.Now.Date.ToShortDateString();
+            listBoxFiles.Items.Add(DateTime.Now.ToString());
         }
     }
 }
