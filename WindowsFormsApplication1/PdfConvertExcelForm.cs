@@ -25,6 +25,8 @@ namespace WindowsFormsApplication1
         //static String errorFolder = @"D:\process\error";
         static String sourceFolder = @"W:/juyuan_data/";
         static String outputFolder = @"W:\excel\";
+        static Boolean startFlag = true;
+        static int LIMIT = 50;
         public  Dao dao = new Dao();
         public PdfConvertExcelForm()
         {
@@ -37,33 +39,32 @@ namespace WindowsFormsApplication1
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
             //获取数据
-            long minId = 0;
-            int limit = 50;
-            List<AnnouncementEntity> articleList = dao.getAnnouncementList(minId, limit);
-            while (articleList != null && articleList.Count > 0) 
+            long minId = dao.getMinId();
+            long maxId = dao.getMaxId();
+            Console.WriteLine(minId+"-"+maxId);
+            long jianju = (maxId - minId) / 3;
+            for (int a = 0; a < 3; a++)
             {
-                dealPdfConvertExcel(articleList);
-                Thread.Sleep(1000);
-                minId += 50;
-                articleList = dao.getAnnouncementList(minId, limit);
+                long param1 = minId + (a * jianju);
+                long param2 = minId + (a + 1) * jianju;
+                
+                ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
+                //handlePdf(param1 + "-" + param2);
             }
-
         }
 
-        
 
         public void handlePdf(Object str) {
             String[] param  = str.ToString().Split('-');
             long minid = int.Parse(param[0]);
             long maxid = int.Parse(param[1]);
-            Console.WriteLine(minid + "--" + maxid);
-            Dao dao = new Dao();
-            while (minid <= maxid)
+           
+            while (startFlag && minid <= maxid)
             {
-                List<AnnouncementEntity> articleList = dao.getAnnouncementList(minid, maxid);
+                listBoxFiles.Items.Add(minid + "--" + LIMIT);
+                List<AnnouncementEntity> articleList = dao.getAnnouncementList(minid, minid+LIMIT);
                 dealPdfConvertExcel(articleList);
-                Thread.Sleep(10000);
-                minid += 50;
+                minid += LIMIT;
             }
 
         }
@@ -76,6 +77,7 @@ namespace WindowsFormsApplication1
 
         private void buttonStop_Click(object sender, EventArgs e)
         {
+            startFlag = false;
             buttonStart.Enabled = true;
             buttonStop.Enabled = false;
         }
@@ -91,6 +93,8 @@ namespace WindowsFormsApplication1
                
                     listBoxFiles.Items.Add(pdfPath);
                     String excelpath = pdfPath.Replace("juyuan_data", "excel/GSGGFWB");
+                    excelpath = Path.ChangeExtension(excelpath, "xlsx");
+                    listBoxFiles.Items.Add("ex-" + excelpath);
                     if (File.Exists(excelpath)) {
                         listBoxFiles.Items.Add(pdfPath+" excel File exist");
                         continue;
@@ -147,8 +151,8 @@ namespace WindowsFormsApplication1
 
                 //结束生成
                 listBoxFiles.Items.Add("convert end .....");
-                buttonStart.Enabled = true;
-                buttonStop.Enabled = false;
+                //buttonStart.Enabled = true;
+                //buttonStop.Enabled = false;
             }
         }
 

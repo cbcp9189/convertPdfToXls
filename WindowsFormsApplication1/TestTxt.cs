@@ -13,6 +13,7 @@ using SolidFramework.Model.Layout;
 using SolidFramework.Model.Plumbing;
 
 using System.Threading.Tasks;
+using WindowsFormsApplication1.entity;
 
 namespace WindowsFormsApplication1
 {
@@ -27,7 +28,6 @@ namespace WindowsFormsApplication1
             options.TextRecoveryNSE = TextRecoveryNSE.Automatic;
             options.ConvertMode = ConvertMode.Document;
             options.ReconstructionMode = ReconstructionMode.Flowing;
-
             options.ExposeTargetDocumentPagination = true;
 
             using (CoreModel model = CoreModel.Create(pdfFile, options))
@@ -38,20 +38,20 @@ namespace WindowsFormsApplication1
             }
         }
 
-        static void TraceToTxt1(LayoutDocument layoutDoc, string outputFile)
+        static List<TableEntity> TraceToTxt1(LayoutDocument layoutDoc, string outputFile)
         {
+            List<TableEntity> tbList = new List<TableEntity>();
             using (StreamWriter file = new StreamWriter(outputFile))
             {
                 Console.WriteLine("TOTAL PAGES: {0}\n", layoutDoc.Count);
-
-
                 int pageIndex = 0;
                 foreach (LayoutObject page in layoutDoc)
                 {
+                    
                     RectangleF pageBounds = page.Bounds;
                     Console.WriteLine("PAGE #{0} (Left={1} Right={2} Top={3} Bottom={4}):\n",
                         ++pageIndex, pageBounds.Left, pageBounds.Right, pageBounds.Top, pageBounds.Bottom);
-
+                    
                     Action<StreamWriter, LayoutObject> dumpEntities = null;
                     dumpEntities = (StreamWriter stream, LayoutObject obj) =>
                     {
@@ -68,10 +68,18 @@ namespace WindowsFormsApplication1
                                 break;
                             case LayoutObjectType.Table:
                                 {
+                                    TableEntity tb = new TableEntity();
+                                    tb.totalPage = layoutDoc.Count;
+                                    tb.pageNumber = pageIndex;
                                     LayoutTable coll = obj as LayoutTable;
                                     Console.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},buttom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
                                         , coll.Bounds.Top, coll.Bounds.Bottom);
-                                    Console.WriteLine(String.Empty);
+                                    tb.left = coll.Bounds.Left;
+                                    tb.right = coll.Bounds.Right;
+                                    tb.top = coll.Bounds.Top;
+                                    tb.bottom = coll.Bounds.Bottom;
+                                    tbList.Add(tb);
+                                    //Console.WriteLine(String.Empty);
                                     foreach (LayoutObject obj1 in coll)
                                     {
                                         dumpEntities(stream, obj1);
@@ -121,11 +129,8 @@ namespace WindowsFormsApplication1
 
                     dumpEntities(file, page);
                 }
-
-                file.Flush();
-                file.Close();
+                return tbList;
             }
         }
-
     }
 }

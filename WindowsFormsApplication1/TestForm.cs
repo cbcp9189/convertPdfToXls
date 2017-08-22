@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WindowsFormsApplication1.util;
 
 namespace WindowsFormsApplication1
 {
@@ -23,6 +24,7 @@ namespace WindowsFormsApplication1
     {
         public static String remoteRoot = "/data/dearMrLei/data/subscriptions/";
         public static String localRoot = "D:\\test\\pdf\\";
+        public static String chiPath = @"D:\tesseract";
        
         public TestForm()
         {
@@ -80,12 +82,12 @@ namespace WindowsFormsApplication1
                 //Define Two Strings to capture the selection and saving of your file 
                 string pdfPath = OpFile.FileName;
                 string searchablePdfPath = Path.ChangeExtension(pdfPath, "searchable.pdf");
-             
+                SolidFramework.Imaging.Ocr.SetTesseractDataDirectory(chiPath);
                 using (PdfDocument document = new PdfDocument(pdfPath))
                 {
                     //Create a new OCRTransformer Object 
                     OcrTransformer transformer = new OcrTransformer();
-
+                    
                     //Set the OcrType to Create a Searchable TextLayer 
                     transformer.OcrType = OcrType.CreateSearchableTextLayer;
 
@@ -121,13 +123,14 @@ namespace WindowsFormsApplication1
             if (OpFile.ShowDialog() == DialogResult.OK)
             {
                 String pdfPath = OpFile.FileName;
-                String xlsFile = Path.ChangeExtension(pdfPath, "xlsx");
+                String xlsFile = Path.ChangeExtension(pdfPath, "xls");
                 Console.WriteLine(xlsFile);
                 using (PdfToExcelConverter converter = new PdfToExcelConverter())
                 {
                     // Add files to convert. 
                     converter.AddSourceFile(pdfPath);
                     //Set the preferred conversion properties 
+                    //converter.OutputType = ExcelDocumentType.Xls;
 
                     //This combines all tables onto one sheet 
                     converter.SingleTable = ExcelTablesOnSheet.PlaceEachTableOnOwnSheet;
@@ -411,6 +414,47 @@ namespace WindowsFormsApplication1
                 DateTime d2 = System.DateTime.Now;
                 Console.WriteLine(d2);
                 Console.WriteLine(d1.Second - d2.Second);
+            }
+        }
+
+        private void excelbutton_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog OpFile = new OpenFileDialog();
+            //show only PDF Files 
+            //OpFile.Filter = "PDF Files (*.xls)|*.xlsx";
+
+            if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+
+                String excelPath = OpFile.FileName;
+                Console.WriteLine("{0}", excelPath);
+               
+                DateTime d1 = System.DateTime.Now;
+                Console.WriteLine(d1);
+
+                string convertxlsPath = Path.ChangeExtension(excelPath, "searchable.xls");
+                ExcelUtil.createExcel2(excelPath);
+
+                //ExcelUtil.WriteExcel(dt,convertxlsPath);
+
+                DateTime d2 = System.DateTime.Now;
+                Console.WriteLine(d2);
+                Console.WriteLine(d1.Second - d2.Second);
+            }
+
+
+        }
+
+        private void toTxtButton_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog OpFile = new OpenFileDialog();
+            //show only PDF Files 
+            //OpFile.Filter = "PDF Files (*.xls)|*.xlsx";
+
+            if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                String excelPath = OpFile.FileName;
+                TxtUtil.createExcel2(excelPath);
             }
         }
     }

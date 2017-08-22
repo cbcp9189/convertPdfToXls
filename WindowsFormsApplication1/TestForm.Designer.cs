@@ -38,6 +38,8 @@
             this.button7 = new System.Windows.Forms.Button();
             this.button8 = new System.Windows.Forms.Button();
             this.button9 = new System.Windows.Forms.Button();
+            this.excelbutton = new System.Windows.Forms.Button();
+            this.toTxtButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
@@ -62,7 +64,7 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(459, 74);
+            this.button3.Location = new System.Drawing.Point(446, 73);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(75, 23);
             this.button3.TabIndex = 2;
@@ -72,7 +74,7 @@
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(598, 74);
+            this.button4.Location = new System.Drawing.Point(583, 74);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
             this.button4.TabIndex = 3;
@@ -82,7 +84,7 @@
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(541, 145);
+            this.button5.Location = new System.Drawing.Point(316, 223);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(118, 41);
             this.button5.TabIndex = 4;
@@ -112,9 +114,9 @@
             // 
             // button7
             // 
-            this.button7.Location = new System.Drawing.Point(75, 228);
+            this.button7.Location = new System.Drawing.Point(108, 223);
             this.button7.Name = "button7";
-            this.button7.Size = new System.Drawing.Size(168, 36);
+            this.button7.Size = new System.Drawing.Size(118, 41);
             this.button7.TabIndex = 7;
             this.button7.Text = "button7";
             this.button7.UseVisualStyleBackColor = true;
@@ -122,7 +124,7 @@
             // 
             // button8
             // 
-            this.button8.Location = new System.Drawing.Point(555, 205);
+            this.button8.Location = new System.Drawing.Point(477, 145);
             this.button8.Name = "button8";
             this.button8.Size = new System.Drawing.Size(118, 41);
             this.button8.TabIndex = 8;
@@ -132,19 +134,41 @@
             // 
             // button9
             // 
-            this.button9.Location = new System.Drawing.Point(405, 33);
+            this.button9.Location = new System.Drawing.Point(711, 74);
             this.button9.Name = "button9";
-            this.button9.Size = new System.Drawing.Size(75, 23);
+            this.button9.Size = new System.Drawing.Size(80, 23);
             this.button9.TabIndex = 9;
             this.button9.Text = "测试txt";
             this.button9.UseVisualStyleBackColor = true;
             this.button9.Click += new System.EventHandler(this.button9_Click);
             // 
+            // excelbutton
+            // 
+            this.excelbutton.Location = new System.Drawing.Point(477, 223);
+            this.excelbutton.Name = "excelbutton";
+            this.excelbutton.Size = new System.Drawing.Size(118, 41);
+            this.excelbutton.TabIndex = 10;
+            this.excelbutton.Text = "测试导出导入excel";
+            this.excelbutton.UseVisualStyleBackColor = true;
+            this.excelbutton.Click += new System.EventHandler(this.excelbutton_Click);
+            // 
+            // toTxtButton
+            // 
+            this.toTxtButton.Location = new System.Drawing.Point(617, 223);
+            this.toTxtButton.Name = "toTxtButton";
+            this.toTxtButton.Size = new System.Drawing.Size(92, 41);
+            this.toTxtButton.TabIndex = 11;
+            this.toTxtButton.Text = "excelToTxt";
+            this.toTxtButton.UseVisualStyleBackColor = true;
+            this.toTxtButton.Click += new System.EventHandler(this.toTxtButton_Click);
+            // 
             // TestForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(801, 276);
+            this.ClientSize = new System.Drawing.Size(867, 447);
+            this.Controls.Add(this.toTxtButton);
+            this.Controls.Add(this.excelbutton);
             this.Controls.Add(this.button9);
             this.Controls.Add(this.button8);
             this.Controls.Add(this.button7);
@@ -173,6 +197,8 @@
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.Button button9;
+        private System.Windows.Forms.Button excelbutton;
+        private System.Windows.Forms.Button toTxtButton;
     }
 }
 

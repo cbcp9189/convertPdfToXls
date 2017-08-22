@@ -83,6 +83,7 @@ namespace WindowsFormsApplication1
             return list;
         }
 
+
         public void savePdfToExcelInfo(AnnouncementEntity aey,String excelPath,Boolean isSucces)
         {
             
@@ -140,43 +141,52 @@ namespace WindowsFormsApplication1
 
         public long getMinId()
         {
-            DataBaseConnect dc = new DataBaseConnect();
+            MySqlConnection con = getmysqlcon();
+            con.Open();
             StringBuilder sql = new StringBuilder("SELECT min(id) min from stock_announcement where del_flag = 0");
-            MySqlDataReader reader = dc.getmysqlread(sql.ToString());
+            MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
+
+            MySqlDataReader reader = mysqlcom.ExecuteReader();
             if (reader.Read())
             {
                 long obj = (long)reader["min"];
+                con.Close();
                return obj;
 
             }
-           
+            con.Close();
             return 0;
         }
 
         public long getMaxId()
         {
-            DataBaseConnect dc = new DataBaseConnect();
+            MySqlConnection con = getmysqlcon();
+            con.Open();
             StringBuilder sql = new StringBuilder("SELECT max(id) max from stock_announcement where del_flag = 0");
-            MySqlDataReader reader = dc.getmysqlread(sql.ToString());
+            MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
+            MySqlDataReader reader = mysqlcom.ExecuteReader();
             if (reader.Read())
             {
                 long obj = (long)reader["max"];
+                con.Close();
                 return obj;
 
             }
-
+            con.Close();
             return 0;
         }
 
         public List<AnnouncementEntity> getAnnouncementList(long start, long end)
         {
-            DataBaseConnect dc = new DataBaseConnect();
+            MySqlConnection con = getmysqlcon();
+            con.Open();
             StringBuilder sql = new StringBuilder("SELECT id,announcement_id,file_path from stock_announcement where file_path != '' AND del_flag = 0 and DATE_FORMAT(pub_date,'%Y')='2017'");
             sql.Append(" and id >= ");
             sql.Append(start);
             sql.Append(" and id <= ");
             sql.Append(end);
-            MySqlDataReader reader = dc.getmysqlread(sql.ToString());
+            MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
+            MySqlDataReader reader = mysqlcom.ExecuteReader();
             List<AnnouncementEntity> list = new List<AnnouncementEntity>();
             while (reader.Read())
             {
@@ -187,6 +197,7 @@ namespace WindowsFormsApplication1
                 list.Add(ae);
 
             }
+            con.Close();
             Console.WriteLine("get list end.....");
             return list;
         }

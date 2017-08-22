@@ -33,14 +33,13 @@
             this.buttonStart = new System.Windows.Forms.Button();
             this.listBoxFiles = new System.Windows.Forms.ListBox();
             this.buttonStop = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.button1);
             this.groupBox1.Controls.Add(this.buttonClear);
+            this.groupBox1.Controls.Add(this.buttonStop);
             this.groupBox1.Controls.Add(this.buttonStart);
             this.groupBox1.Controls.Add(this.listBoxFiles);
             this.groupBox1.Location = new System.Drawing.Point(18, 12);
@@ -52,7 +51,7 @@
             // 
             // buttonClear
             // 
-            this.buttonClear.Location = new System.Drawing.Point(615, 386);
+            this.buttonClear.Location = new System.Drawing.Point(571, 387);
             this.buttonClear.Name = "buttonClear";
             this.buttonClear.Size = new System.Drawing.Size(85, 31);
             this.buttonClear.TabIndex = 2;
@@ -83,7 +82,7 @@
             // 
             this.buttonStop.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.buttonStop.Enabled = false;
-            this.buttonStop.Location = new System.Drawing.Point(836, 304);
+            this.buttonStop.Location = new System.Drawing.Point(718, 349);
             this.buttonStop.Name = "buttonStop";
             this.buttonStop.Size = new System.Drawing.Size(75, 69);
             this.buttonStop.TabIndex = 10;
@@ -92,23 +91,12 @@
             this.buttonStop.UseVisualStyleBackColor = true;
             this.buttonStop.Click += new System.EventHandler(this.buttonStop_Click);
             // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(379, 372);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 3;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
-            // 
             // PdfConvertExcelForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(923, 474);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.buttonStop);
             this.Name = "PdfConvertExcelForm";
             this.Text = "PdfConvertExcelForm";
             this.groupBox1.ResumeLayout(false);
@@ -123,6 +111,5 @@
         private System.Windows.Forms.Button buttonStart;
         private System.Windows.Forms.ListBox listBoxFiles;
         private System.Windows.Forms.Button buttonStop;
-        private System.Windows.Forms.Button button1;
     }
 }
