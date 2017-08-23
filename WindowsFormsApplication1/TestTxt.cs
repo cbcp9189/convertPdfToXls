@@ -19,8 +19,9 @@ namespace WindowsFormsApplication1
 {
     class TestTxt
     {
-        internal static void SolidModelLayoutTest1(string pdfFile, string outSvgFile, string outTxtFile)
+        internal static List<TableEntity> SolidModelLayoutTest1(string pdfFile, string outTxtFile)
         {
+            List<TableEntity> tbList = new List<TableEntity>();
             PdfOptions options = new PdfOptions();
             options.TextRecoveryEngine = TextRecoveryEngine.SolidOCR;
             options.TextRecovery = TextRecovery.Automatic;
@@ -33,9 +34,10 @@ namespace WindowsFormsApplication1
             using (CoreModel model = CoreModel.Create(pdfFile, options))
             {
                 LayoutDocument layoutDoc = model.GetLayout();
-                TraceToTxt1(layoutDoc, outTxtFile);
+                tbList = TraceToTxt1(layoutDoc, outTxtFile);
                 model.Dispose();
             }
+            return tbList;
         }
 
         static List<TableEntity> TraceToTxt1(LayoutDocument layoutDoc, string outputFile)
@@ -49,9 +51,8 @@ namespace WindowsFormsApplication1
                 {
                     
                     RectangleF pageBounds = page.Bounds;
-                    Console.WriteLine("PAGE #{0} (Left={1} Right={2} Top={3} Bottom={4}):\n",
-                        ++pageIndex, pageBounds.Left, pageBounds.Right, pageBounds.Top, pageBounds.Bottom);
-                    
+                    //Console.WriteLine("PAGE #{0} (Left={1} Right={2} Top={3} Bottom={4}):\n",
+                    ++pageIndex;
                     Action<StreamWriter, LayoutObject> dumpEntities = null;
                     dumpEntities = (StreamWriter stream, LayoutObject obj) =>
                     {

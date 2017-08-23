@@ -94,7 +94,7 @@
     <Reference Include="Org.Mentalis.Security">
       <HintPath>..\..\..\..\..\..\opt\SharpSSH-1.1.1.13.bin\Org.Mentalis.Security.dll</HintPath>
     </Reference>
-    <Reference Include="SolidFramework, Version=9.2.7980.1, Culture=neutral, PublicKeyToken=d16bc61c9431f4ad, processorArchitecture=AMD64">
+    <Reference Include="SolidFramework, Version=9.2.7746.1, Culture=neutral, PublicKeyToken=d16bc61c9431f4ad, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\newdownload\SolidFramework.dll</HintPath>
     </Reference>
@@ -177,6 +177,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="util\DateTimeUtil.cs" />
     <Compile Include="util\ExcelUtil.cs" />
     <Compile Include="util\SFTPHelper.cs" />
     <Compile Include="util\SolidConvertUtil.cs" />

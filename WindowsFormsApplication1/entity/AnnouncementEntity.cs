@@ -10,8 +10,9 @@ namespace WindowsFormsApplication1.entity
     {
         public long id;
         public String pdfPath;
-        public long announcement_id;
+        public long doc_id;
         public String desc;
+        public int doc_type;
     }
 
 }

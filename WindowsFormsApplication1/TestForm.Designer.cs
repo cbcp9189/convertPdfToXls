@@ -40,6 +40,7 @@
             this.button9 = new System.Windows.Forms.Button();
             this.excelbutton = new System.Windows.Forms.Button();
             this.toTxtButton = new System.Windows.Forms.Button();
+            this.button10 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
@@ -162,11 +163,22 @@
             this.toTxtButton.UseVisualStyleBackColor = true;
             this.toTxtButton.Click += new System.EventHandler(this.toTxtButton_Click);
             // 
+            // button10
+            // 
+            this.button10.Location = new System.Drawing.Point(246, 306);
+            this.button10.Name = "button10";
+            this.button10.Size = new System.Drawing.Size(75, 23);
+            this.button10.TabIndex = 12;
+            this.button10.Text = "button10";
+            this.button10.UseVisualStyleBackColor = true;
+            this.button10.Click += new System.EventHandler(this.button10_Click);
+            // 
             // TestForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(867, 447);
+            this.Controls.Add(this.button10);
             this.Controls.Add(this.toTxtButton);
             this.Controls.Add(this.excelbutton);
             this.Controls.Add(this.button9);
@@ -199,6 +211,7 @@
         private System.Windows.Forms.Button button9;
         private System.Windows.Forms.Button excelbutton;
         private System.Windows.Forms.Button toTxtButton;
+        private System.Windows.Forms.Button button10;
     }
 }
 

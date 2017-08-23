@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WindowsFormsApplication1.constant;
 using WindowsFormsApplication1.entity;
+using WindowsFormsApplication1.util;
 
 namespace WindowsFormsApplication1
 {
@@ -21,22 +22,12 @@ namespace WindowsFormsApplication1
             //string M_str_sqlcon = "server=106.75.116.2;user id=root;password=hoboom;database=hooboom"; //根据自己的设置
             return new MySqlConnection(M_str_sqlcon);
         }
-        public void updateArticle(String xls_path,long id)
-        {
-            DataBaseConnect dc = new DataBaseConnect();
-            //String sql = "UPDATE sys_config SET set_by = 2 where variable = 'diagnostics.include_raw'";
-            StringBuilder sql = new StringBuilder("UPDATE article SET xls_path = '");
-            sql.Append(xls_path);
-            sql.Append("' where id =");
-            sql.Append(id);
-            dc.getmysqlcom(sql.ToString());
-            Console.WriteLine("update end.....");
-        }
+       
 
         public List<AnnouncementEntity> getArticleList(long index, int count)
         {
             DataBaseConnect dc = new DataBaseConnect();
-            StringBuilder sql = new StringBuilder("SELECT id,pdf_path from article where pdf_path != '' AND del_flag = 0 ");
+            StringBuilder sql = new StringBuilder("SELECT id,pdf_path from article where pdf_path != '' AND del_flag = 0  ");
             sql.Append(" limit ");
             sql.Append(index);
             sql.Append(",");
@@ -57,8 +48,7 @@ namespace WindowsFormsApplication1
 
         public List<AnnouncementEntity> getAnnouncementList(long index, int count)
         {
-           
-            StringBuilder sql = new StringBuilder("SELECT id,announcement_id,file_path from stock_announcement where file_path != '' AND del_flag = 0 and DATE_FORMAT(pub_date,'%Y')='2017'");
+            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13 AND excel_flag = 0 and pdf_path like '%/2016/%' ");
             sql.Append(" limit ");
             sql.Append(index);
             sql.Append(",");
@@ -73,10 +63,10 @@ namespace WindowsFormsApplication1
             {
                 AnnouncementEntity ae = new AnnouncementEntity();
                 ae.id = (long)reader["id"];
-                ae.announcement_id = (long)reader["announcement_id"];
-                ae.pdfPath = (string)reader["file_path"];
+                ae.doc_id = (long)reader["doc_id"];
+                ae.pdfPath = (string)reader["pdf_path"];
+                ae.doc_type = 13;
                 list.Add(ae);
-
             }
             Console.WriteLine("get list end.....");
             con.Close();
@@ -84,41 +74,54 @@ namespace WindowsFormsApplication1
         }
 
 
-        public void savePdfToExcelInfo(AnnouncementEntity aey,String excelPath,Boolean isSucces)
+        public void savePdfToExcelInfo(AnnouncementEntity aey, String excelPath, Boolean isSucces, TableEntity tb)
         {
-            
-            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,origin_id,state,excel_path) VALUES(");
-            sql.Append(aey.id);
+
+            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time) VALUES(");
+            sql.Append(aey.doc_id);
             sql.Append(", ");
-            sql.Append(SysConstant.ANNOUNCEMENT_TYPE);
-            sql.Append(", ");
-            sql.Append(aey.announcement_id);
-            sql.Append(", ");
-            if (isSucces) {
-                sql.Append(0);
-            }
-            else
-            {
-                sql.Append(1);
-            }
-            
+            sql.Append(aey.doc_type);
             sql.Append(",'");
             sql.Append(excelPath);
-            sql.Append("')");
+            sql.Append("',");
+            sql.Append(tb.pageNumber);
+            sql.Append(",");
+            sql.Append(tb.totalPage);
+            sql.Append(",");
+            sql.Append(tb.left);
+            sql.Append(",");
+            sql.Append(tb.top);
+            sql.Append(",");
+            sql.Append(tb.right);
+            sql.Append(",");
+            sql.Append(tb.bottom);
+            sql.Append(",");
+            sql.Append(DateTimeUtil.GetTimeStamp());
+            sql.Append(")");
             Console.WriteLine(sql.ToString());
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             mysqlcom.ExecuteNonQuery();
+            //同时更新pdf_stream表中的excel_flag
+            //UPDATE pdf_stream SET excel_flag = 1 where doc_id = 137922 AND doc_type = 2
+            StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = 1 where doc_id = ");
+            updateSql.Append(aey.doc_id);
+            updateSql.Append(" AND doc_type = ");
+            updateSql.Append(aey.doc_type);
+            MySqlCommand mysqlcom1 = new MySqlCommand(updateSql.ToString(), con);
+            mysqlcom1.ExecuteNonQuery();
             con.Close();
-            Console.WriteLine("insert end.....");
+            Console.WriteLine("insert and update end.....");
         }
 
-        public Boolean getAnnouncementCount(long id)
+        public Boolean getAnnouncementCount(long id,int doc_type)
         {
            
             StringBuilder sql = new StringBuilder("SELECT count(*) count from pdf_to_excel where docid = ");
             sql.Append(id);
+            sql.Append(" and doctype =");
+            sql.Append(doc_type);
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
@@ -138,12 +141,11 @@ namespace WindowsFormsApplication1
             return false;
         }
 
-
         public long getMinId()
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT min(id) min from stock_announcement where del_flag = 0");
+            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
 
             MySqlDataReader reader = mysqlcom.ExecuteReader();
@@ -162,7 +164,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT max(id) max from stock_announcement where del_flag = 0");
+            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             MySqlDataReader reader = mysqlcom.ExecuteReader();
             if (reader.Read())
@@ -180,10 +182,10 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT id,announcement_id,file_path from stock_announcement where file_path != '' AND del_flag = 0 and DATE_FORMAT(pub_date,'%Y')='2017'");
+            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13  AND excel_flag = 0 ");
             sql.Append(" and id >= ");
             sql.Append(start);
-            sql.Append(" and id <= ");
+            sql.Append(" and id <");
             sql.Append(end);
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             MySqlDataReader reader = mysqlcom.ExecuteReader();
@@ -192,8 +194,9 @@ namespace WindowsFormsApplication1
             {
                 AnnouncementEntity ae = new AnnouncementEntity();
                 ae.id = (long)reader["id"];
-                ae.announcement_id = (long)reader["announcement_id"];
-                ae.pdfPath = (string)reader["file_path"];
+                ae.doc_id = (long)reader["doc_id"];
+                ae.pdfPath = (string)reader["pdf_path"];
+                ae.doc_type = (byte)reader["doc_type"];
                 list.Add(ae);
 
             }

@@ -23,8 +23,8 @@ namespace WindowsFormsApplication1
         //static String sourceFolder = @"D:\process\source";
         //static String outputFolder = @"D:\process\output";
         //static String errorFolder = @"D:\process\error";
-        static String sourceFolder = @"W:/juyuan_data/";
-        static String outputFolder = @"W:\excel\";
+        static String sourceFolder = @"X:/juyuan_data/";
+        static String outputFolder = @"X:\excel\";
         static Boolean startFlag = true;
         static int LIMIT = 50;
         public  Dao dao = new Dao();
@@ -39,17 +39,18 @@ namespace WindowsFormsApplication1
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
             //获取数据
-            long minId = dao.getMinId();
-            long maxId = dao.getMaxId();
-            Console.WriteLine(minId+"-"+maxId);
-            long jianju = (maxId - minId) / 3;
-            for (int a = 0; a < 3; a++)
+            long minId = 0;
+            int limit = 50;
+            List<AnnouncementEntity> articleList = dao.getAnnouncementList(minId, limit);
+            while (startFlag && articleList != null && articleList.Count > 0)
             {
-                long param1 = minId + (a * jianju);
-                long param2 = minId + (a + 1) * jianju;
-                
-                ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
-                //handlePdf(param1 + "-" + param2);
+                dealPdfConvertExcel(articleList);
+                Thread.Sleep(1000);
+                minId += 50;
+                articleList = dao.getAnnouncementList(minId, limit);
+                if (listBoxFiles.Items.Count > 5000) {
+                    listBoxFiles.Items.Clear();
+                }
             }
         }
 
@@ -65,6 +66,9 @@ namespace WindowsFormsApplication1
                 List<AnnouncementEntity> articleList = dao.getAnnouncementList(minid, minid+LIMIT);
                 dealPdfConvertExcel(articleList);
                 minid += LIMIT;
+                if (listBoxFiles.Items.Count > 5000) {
+                    listBoxFiles.Items.Clear();
+                }
             }
 
         }
@@ -96,7 +100,7 @@ namespace WindowsFormsApplication1
                     excelpath = Path.ChangeExtension(excelpath, "xlsx");
                     listBoxFiles.Items.Add("ex-" + excelpath);
                     if (File.Exists(excelpath)) {
-                        listBoxFiles.Items.Add(pdfPath+" excel File exist");
+                        listBoxFiles.Items.Add(pdfPath + " excel File exist");
                         continue;
                     }
                     PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
@@ -125,24 +129,46 @@ namespace WindowsFormsApplication1
                         //String eFolder = Path.Combine(errorFolder, Path.GetFileName(processedJob.SourcePath));
                         //String ePath = processedJob.SourcePath;
                         //File.Move(ePath, eFolder);
-                        savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), "");
+                        //savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), "");
                     }
                     else
                     {  //生成成功
+                        DateTime d1 = System.DateTime.Now;
                         String excelpath = processedJob.SourcePath.Replace("juyuan_data", "excel/GSGGFWB");
                         String wordTemporaryPath = processedJob.OutputPaths[0];
                         String outputExtension = Path.GetExtension(wordTemporaryPath);
                         excelpath = Path.ChangeExtension(excelpath, outputExtension);
-                        listBoxFiles.Items.Add("start convert..." + excelpath);
+                        listBoxFiles.Items.Add(d1+" start convert..." + excelpath);
                         if (File.Exists(wordTemporaryPath))
                         {
                             FileUtil.createDir(Path.GetDirectoryName(excelpath));
                             File.Copy(wordTemporaryPath, excelpath, true);
-                            listBoxFiles.Items.Add(DateTime.Now.ToString()+" success: " + excelpath);
-                            //添加对应关系
-                            String savePath = excelpath.Substring(excelpath.IndexOf("GSGGFWB"));
-                            listBoxFiles.Items.Add("save path: " + savePath);
-                            savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), savePath);
+                            ExcelUtil eu = new ExcelUtil();
+                            List<String> pathList = eu.createChildExcel(excelpath);
+                            
+                            if (pathList != null) {
+                                String txtPath = Path.ChangeExtension(excelpath, ".txt");
+                                List<TableEntity> tbPostionList = TestTxt.SolidModelLayoutTest1(processedJob.SourcePath, txtPath);
+                                listBoxFiles.Items.Add(DateTime.Now.ToString() + " success: " + excelpath);
+                                int index = 0;
+                                foreach(String subExcelPath in pathList){
+                                    if (tbPostionList == null || index >= tbPostionList.Count)
+                                    {
+                                        break;
+                                    }
+                                    TableEntity tb = tbPostionList[index];
+                                    if (tb == null) {
+                                        continue;
+                                    }
+                                    //添加对应关系
+                                    String saveExcelPath = subExcelPath.Substring(subExcelPath.IndexOf("GSGGFWB"));
+                                    listBoxFiles.Items.Add(d1 + " save path: " + saveExcelPath);
+                                    //保存到pdf_to_excel表中
+                                    savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), saveExcelPath, tb);
+                                    index++;
+                                }
+                                File.Delete(txtPath);
+                            }
                         }
                     }
                 }
@@ -156,26 +182,21 @@ namespace WindowsFormsApplication1
             }
         }
 
-        public void savePdfToExcelInfo(List<AnnouncementEntity> articleList,String pdfName,String excelPath)
+        public void savePdfToExcelInfo(List<AnnouncementEntity> articleList,String pdfName,String excelPath,TableEntity tb)
         {
             foreach (AnnouncementEntity ae in articleList)
             {
                 if (ae.pdfPath.Contains(pdfName))
                 {
-                    if (!dao.getAnnouncementCount(ae.id))
-                    {
                         if (excelPath.Equals(""))
                         {
-                            dao.savePdfToExcelInfo(ae, excelPath,false);
+                            //dao.savePdfToExcelInfo(ae, excelPath,false);
                         }
                         else
                         {
-                            dao.savePdfToExcelInfo(ae, excelPath, true);
+                            dao.savePdfToExcelInfo(ae, excelPath, true, tb);
                         }
                         break;
-                        
-                    }
-                    break;
                 }
             }
         
@@ -189,6 +210,12 @@ namespace WindowsFormsApplication1
             listBoxFiles.Items.Add(savePath);
             String sd = DateTime.Now.Date.ToShortDateString();
             listBoxFiles.Items.Add(DateTime.Now.ToString());
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            TestForm myform = new TestForm();   //调用带参的构造函数
+            myform.Show();
         }
     }
 }

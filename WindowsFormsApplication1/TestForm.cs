@@ -1,4 +1,5 @@
-﻿using MySql.Data.MySqlClient;
+﻿using ClosedXML.Excel;
+using MySql.Data.MySqlClient;
 using SolidFramework.Converters;
 using SolidFramework.Converters.Plumbing;
 using SolidFramework.Pdf;
@@ -24,7 +25,7 @@ namespace WindowsFormsApplication1
     {
         public static String remoteRoot = "/data/dearMrLei/data/subscriptions/";
         public static String localRoot = "D:\\test\\pdf\\";
-        public static String chiPath = @"D:\tesseract";
+        public static String chiPath = "D:\\tesseract\0823";
        
         public TestForm()
         {
@@ -73,7 +74,7 @@ namespace WindowsFormsApplication1
         private void button2_Click(object sender, EventArgs e)
         {
             SolidFramework.License.Import(@"d:\User\license.xml");
-
+            //SolidFramework.Imaging.Ocr.SetTesseractDataDirectory(chiPath);
             OpenFileDialog OpFile = new OpenFileDialog();
             //show only PDF Files 
             OpFile.Filter = "PDF Files (*.pdf)|*.pdf";
@@ -82,19 +83,19 @@ namespace WindowsFormsApplication1
                 //Define Two Strings to capture the selection and saving of your file 
                 string pdfPath = OpFile.FileName;
                 string searchablePdfPath = Path.ChangeExtension(pdfPath, "searchable.pdf");
-                SolidFramework.Imaging.Ocr.SetTesseractDataDirectory(chiPath);
+                
                 using (PdfDocument document = new PdfDocument(pdfPath))
                 {
                     //Create a new OCRTransformer Object 
                     OcrTransformer transformer = new OcrTransformer();
                     
-                    //Set the OcrType to Create a Searchable TextLayer 
+                    //Set the OcrType to Create a Searchable TextLayer
                     transformer.OcrType = OcrType.CreateSearchableTextLayer;
 
-                    //Set the OCR Language to the Language in your PDF File - "en" for English, "es" for Spanish etc. 
+                    //Set the OCR Language to the Language in your PDF File - "en" for English, "es" for Spanish etc.
                     transformer.OcrLanguage = "zh";
 
-                    //Preserve the Original PDF Files Image Compression 
+                    //Preserve the Original PDF Files Image Compression
                     transformer.OcrImageCompression = SolidFramework.Imaging.Plumbing.ImageCompression.PreserveOriginal;
 
                     //Add the user selected PDF file to your transformer 
@@ -402,14 +403,13 @@ namespace WindowsFormsApplication1
 
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-
                 String pdfPath = OpFile.FileName;
                 Console.WriteLine("{0}", pdfPath);
                 String htmlPath = Path.ChangeExtension(pdfPath, ".html");
                 String txtPath = Path.ChangeExtension(pdfPath, ".txt");
                 DateTime d1 = System.DateTime.Now;
                 Console.WriteLine(d1);
-                TestTxt.SolidModelLayoutTest1(pdfPath, htmlPath, txtPath);
+                TestTxt.SolidModelLayoutTest1(pdfPath, txtPath);
 
                 DateTime d2 = System.DateTime.Now;
                 Console.WriteLine(d2);
@@ -433,7 +433,7 @@ namespace WindowsFormsApplication1
                 Console.WriteLine(d1);
 
                 string convertxlsPath = Path.ChangeExtension(excelPath, "searchable.xls");
-                ExcelUtil.createExcel2(excelPath);
+                //ExcelUtil.createExcel2(excelPath);
 
                 //ExcelUtil.WriteExcel(dt,convertxlsPath);
 
@@ -450,12 +450,29 @@ namespace WindowsFormsApplication1
             OpenFileDialog OpFile = new OpenFileDialog();
             //show only PDF Files 
             //OpFile.Filter = "PDF Files (*.xls)|*.xlsx";
-
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                String excelPath = OpFile.FileName;
-                TxtUtil.createExcel2(excelPath);
+                String path = OpFile.FileName;
+                XLWorkbook workBook = new XLWorkbook(path);
+                IXLWorksheet workSheet = workBook.Worksheet(1);
+                int count = workSheet.RowCount();
+                for (int i = 1; i <= count; i++)
+                {
+                    IXLRow row =  workSheet.Row(i);
+                    int cellcount = row.CellCount();
+                    for (int j = 1; j <= count; j++)
+                    { 
+                        
+                    }
+
+                }
             }
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            Console.WriteLine(DateTimeUtil.GetTimeStamp());
+
         }
     }
 }
