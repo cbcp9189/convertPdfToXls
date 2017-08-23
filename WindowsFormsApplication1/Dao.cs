@@ -77,10 +77,12 @@ namespace WindowsFormsApplication1
         public void savePdfToExcelInfo(AnnouncementEntity aey, String excelPath, Boolean isSucces, TableEntity tb)
         {
 
-            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time) VALUES(");
+            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,) VALUES(");
             sql.Append(aey.doc_id);
             sql.Append(", ");
             sql.Append(aey.doc_type);
+            sql.Append(",'");
+            sql.Append(aey.id);
             sql.Append(",'");
             sql.Append(excelPath);
             sql.Append("',");
@@ -97,15 +99,19 @@ namespace WindowsFormsApplication1
             sql.Append(tb.bottom);
             sql.Append(",");
             sql.Append(DateTimeUtil.GetTimeStamp());
+            sql.Append(",");
+            sql.Append(DateTimeUtil.GetTimeStampWithMs());
             sql.Append(")");
             Console.WriteLine(sql.ToString());
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             mysqlcom.ExecuteNonQuery();
-            //同时更新pdf_stream表中的excel_flag
-            //UPDATE pdf_stream SET excel_flag = 1 where doc_id = 137922 AND doc_type = 2
-            StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = 1 where doc_id = ");
+            //同时更新pdf_stream表中的excel_flag和version字段
+            StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = 1,");
+            updateSql.Append("version = ");
+            updateSql.Append(DateTimeUtil.GetTimeStampWithMs());
+            updateSql.Append(" where doc_id = ");
             updateSql.Append(aey.doc_id);
             updateSql.Append(" AND doc_type = ");
             updateSql.Append(aey.doc_type);
