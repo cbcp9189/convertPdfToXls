@@ -145,7 +145,6 @@ namespace WindowsFormsApplication1
                             File.Copy(wordTemporaryPath, excelpath, true);
                             ExcelUtil eu = new ExcelUtil();
                             List<String> pathList = eu.createChildExcel(excelpath);
-                            
                             if (pathList != null) {
                                 String txtPath = Path.ChangeExtension(excelpath, ".txt");
                                 List<TableEntity> tbPostionList = TestTxt.SolidModelLayoutTest1(processedJob.SourcePath, txtPath);
