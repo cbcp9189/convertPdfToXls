@@ -28,9 +28,11 @@ namespace WindowsFormsApplication1
         static Boolean startFlag = true;
         static int LIMIT = 50;
         public  Dao dao = new Dao();
+        
         public PdfConvertExcelForm()
         {
             InitializeComponent();
+            ThreadPool.SetMaxThreads(30, 30);
         }
         //开始转换
         private void buttonChoose_Click(object sender, EventArgs e)
@@ -45,7 +47,6 @@ namespace WindowsFormsApplication1
             while (startFlag && articleList != null && articleList.Count > 0)
             {
                 dealPdfConvertExcel(articleList);
-                Thread.Sleep(1000);
                 minId += 50;
                 articleList = dao.getAnnouncementList(minId, limit);
                 if (listBoxFiles.Items.Count > 5000) {
@@ -115,15 +116,36 @@ namespace WindowsFormsApplication1
                 // wait until the queue is empty and all jobs are processed 
                 processor.WaitTillComplete();
                 Thread.Sleep(1000);
-                foreach (JobEnvelope processedJob in processor.ProcessedJobs)
+                //多线程执行
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start jobs thread ...");
+                try
                 {
-                    
+                    ThreadPool.QueueUserWorkItem(new WaitCallback(dealExcelAndTxtByThreadProce), processor);
+                }
+                catch (Exception e) 
+                {
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), e);
+                }
+                
+                
+            }
+        }
+
+        public void dealExcelAndTxtByThreadProce(Object proceJobs)
+        {
+            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "dealExcelAndTxtByThreadProce start ...");
+            JobProcessor jobs = (JobProcessor)proceJobs;
+            try
+            {
+                foreach (JobEnvelope processedJob in jobs.ProcessedJobs)
+                {
                     if ((processedJob.Status != SolidFramework.Services.Plumbing.JobStatus.Success) || (processedJob.OutputPaths.Count != 1))
                     {
                         // report errors to the console window 
                         Console.WriteLine(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
-                        listBoxFiles.Items.Add(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
-                        
+                        //listBoxFiles.Items.Add(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
+
                     }
                     else
                     {  //生成成功
@@ -132,7 +154,7 @@ namespace WindowsFormsApplication1
                         String wordTemporaryPath = processedJob.OutputPaths[0];
                         String outputExtension = Path.GetExtension(wordTemporaryPath);
                         excelpath = Path.ChangeExtension(excelpath, outputExtension);
-                        listBoxFiles.Items.Add(d1+" start convert..." + excelpath);
+                        //listBoxFiles.Items.Add(d1 + " start convert..." + excelpath);
                         AnnouncementEntity announcement = (AnnouncementEntity)processedJob.CustomData;
                         if (File.Exists(wordTemporaryPath))
                         {
@@ -140,10 +162,12 @@ namespace WindowsFormsApplication1
                             File.Copy(wordTemporaryPath, excelpath, true);
                             ExcelUtil eu = new ExcelUtil();
                             List<KeyValEntity> pathList = eu.createChildExcel(excelpath);
-                            if (pathList != null) {
+                            if (pathList != null)
+                            {
                                 String txtPath = Path.ChangeExtension(excelpath, ".txt");
                                 List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(processedJob.SourcePath, txtPath);
-                                listBoxFiles.Items.Add(DateTime.Now.ToString() + " success: " + excelpath);
+                                //listBoxFiles.Items.Add(DateTime.Now.ToString() + " success: " + excelpath);
+                                LogHelper.WriteLog(typeof(PdfConvertExcelForm), DateTime.Now.ToString() + " success: " + excelpath);
                                 int index = 0;
                                 foreach (KeyValEntity kve in pathList)
                                 {
@@ -152,16 +176,17 @@ namespace WindowsFormsApplication1
                                         break;
                                     }
                                     TableEntity tb = tbPostionList[index];
-                                    if (tb == null) {
+                                    if (tb == null)
+                                    {
                                         continue;
                                     }
                                     //添加对应关系
                                     String saveExcelPath = kve.key.Substring(kve.key.IndexOf("GSGGFWB"));
                                     kve.desc = saveExcelPath;
-                                    listBoxFiles.Items.Add(d1 + " save path: " + saveExcelPath);
+                                    //listBoxFiles.Items.Add(d1 + " save path: " + saveExcelPath);
                                     //保存到pdf_to_excel表中
-                                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), announcement.doc_id+"-"+kve.value);
-                                    dao.savePdfToExcelInfo(announcement,kve,tb);
+                                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), announcement.doc_id + "-" + kve.value);
+                                    dao.savePdfToExcelInfo(announcement, kve, tb);
                                     index++;
                                 }
                                 //更新pdfstream表的excelflag
@@ -171,10 +196,14 @@ namespace WindowsFormsApplication1
                         Thread.Sleep(50);
                     }
                 }
-
-                //结束生成
-                listBoxFiles.Items.Add("convert end .....");
             }
+            catch (Exception e) {
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), e);
+            }
+            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "dealExcelAndTxtByThreadProce end ...");
+            //结束生成
+            //listBoxFiles.Items.Add("convert end .....");
+        
         }
 
         private void button1_Click(object sender, EventArgs e)
