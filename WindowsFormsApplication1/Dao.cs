@@ -22,6 +22,13 @@ namespace WindowsFormsApplication1
             //string M_str_sqlcon = "server=106.75.116.2;user id=root;password=hoboom;database=hooboom"; //根据自己的设置
             return new MySqlConnection(M_str_sqlcon);
         }
+
+        public MySqlConnection getmysqlconlocal()
+        {
+            string M_str_sqlcon = "server=127.0.0.1;user id=root;password=root;database=zs"; //根据自己的设置
+            //string M_str_sqlcon = "server=106.75.116.2;user id=root;password=hoboom;database=hooboom"; //根据自己的设置
+            return new MySqlConnection(M_str_sqlcon);
+        }
        
 
         public List<AnnouncementEntity> getArticleList(long index, int count)
@@ -74,17 +81,17 @@ namespace WindowsFormsApplication1
         }
 
 
-        public void savePdfToExcelInfo(AnnouncementEntity aey, String excelPath, Boolean isSucces, TableEntity tb)
+        public void savePdfToExcelInfo(AnnouncementEntity aey, KeyValEntity kve,TableEntity tb)
         {
 
-            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,) VALUES(");
+            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,version,content) VALUES(");
             sql.Append(aey.doc_id);
             sql.Append(", ");
             sql.Append(aey.doc_type);
-            sql.Append(",'");
+            sql.Append(",");
             sql.Append(aey.id);
             sql.Append(",'");
-            sql.Append(excelPath);
+            sql.Append(kve.desc);
             sql.Append("',");
             sql.Append(tb.pageNumber);
             sql.Append(",");
@@ -101,13 +108,23 @@ namespace WindowsFormsApplication1
             sql.Append(DateTimeUtil.GetTimeStamp());
             sql.Append(",");
             sql.Append(DateTimeUtil.GetTimeStampWithMs());
+             sql.Append(",");
+             sql.Append("@content");
             sql.Append(")");
-            Console.WriteLine(sql.ToString());
+            //Console.WriteLine(sql.ToString());
             MySqlConnection con = getmysqlcon();
             con.Open();
-            MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
+            MySqlCommand mysqlcom = con.CreateCommand();
+            mysqlcom.Parameters.AddWithValue("@content", kve.value);
+            mysqlcom.CommandText = sql.ToString();
             mysqlcom.ExecuteNonQuery();
-            //同时更新pdf_stream表中的excel_flag和version字段
+            con.Close();
+            Console.WriteLine("insert and update end.....");
+        }
+
+        public void updatePdfStreamInfo(AnnouncementEntity aey)
+        {
+            //更新pdf_stream表中的excel_flag和version字段
             StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = 1,");
             updateSql.Append("version = ");
             updateSql.Append(DateTimeUtil.GetTimeStampWithMs());
@@ -115,6 +132,8 @@ namespace WindowsFormsApplication1
             updateSql.Append(aey.doc_id);
             updateSql.Append(" AND doc_type = ");
             updateSql.Append(aey.doc_type);
+            MySqlConnection con = getmysqlcon();
+            con.Open();
             MySqlCommand mysqlcom1 = new MySqlCommand(updateSql.ToString(), con);
             mysqlcom1.ExecuteNonQuery();
             con.Close();
@@ -209,6 +228,19 @@ namespace WindowsFormsApplication1
             con.Close();
             Console.WriteLine("get list end.....");
             return list;
+        }
+
+        public void testspecilStr(String txt) {
+            MySqlConnection con = getmysqlconlocal();
+            con.Open();
+            String sql = "INSERT t_title(name,catalog_id,content) VALUES(@name,1,@content)";
+            MySqlCommand mysqlcom = con.CreateCommand();
+            
+            mysqlcom.Parameters.AddWithValue("@name", "hello world");
+            mysqlcom.Parameters.AddWithValue("@content", txt);
+            mysqlcom.CommandText = sql;
+            mysqlcom.ExecuteNonQuery();
+            con.Close();
         }
     }
 }

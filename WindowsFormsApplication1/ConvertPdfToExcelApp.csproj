@@ -83,6 +83,9 @@
       <HintPath>C:\Users\Administrator\Desktop\8\22\Interop.Excel.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
+    <Reference Include="log4net">
+      <HintPath>C:\Users\Administrator\Desktop\9\log4net-2.0.8\bin\net\4.5\release\log4net.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Office.Interop.Excel">
       <HintPath>C:\Users\Administrator\Desktop\8\21\Microsoft.Office.Interop.Excel\Microsoft.Office.Interop.Excel.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
@@ -158,6 +161,7 @@
     <Compile Include="constant\SysConstant.cs" />
     <Compile Include="Dao.cs" />
     <Compile Include="entity\TableEntity.cs" />
+    <Compile Include="entity\KeyValEntity.cs" />
     <Compile Include="entity\User.cs" />
     <Compile Include="TestTxt.cs" />
     <Compile Include="Test\TestDapper.cs" />
@@ -179,6 +183,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="util\DateTimeUtil.cs" />
     <Compile Include="util\ExcelUtil.cs" />
+    <Compile Include="util\LogHelper.cs" />
     <Compile Include="util\SFTPHelper.cs" />
     <Compile Include="util\SolidConvertUtil.cs" />
     <Compile Include="entity\SshConnectionInfo.cs" />

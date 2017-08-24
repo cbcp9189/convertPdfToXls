@@ -54,7 +54,6 @@ namespace WindowsFormsApplication1
             }
         }
 
-
         public void handlePdf(Object str) {
             String[] param  = str.ToString().Split('-');
             long minid = int.Parse(param[0]);
@@ -106,6 +105,7 @@ namespace WindowsFormsApplication1
                     PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
                     //Set the Source Path 
                     jobEnvelope.SourcePath = pdfPath;
+                    jobEnvelope.CustomData = ae;
                     jobEnvelope.SingleTable = 0;
                     jobEnvelope.TablesFromContent = false;
 
@@ -113,11 +113,8 @@ namespace WindowsFormsApplication1
                     processor.SubmitJob(jobEnvelope);
                 }
                 // wait until the queue is empty and all jobs are processed 
-                Console.WriteLine("before");
                 processor.WaitTillComplete();
-                Console.WriteLine("after");
                 Thread.Sleep(1000);
-
                 foreach (JobEnvelope processedJob in processor.ProcessedJobs)
                 {
                     
@@ -126,10 +123,7 @@ namespace WindowsFormsApplication1
                         // report errors to the console window 
                         Console.WriteLine(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
                         listBoxFiles.Items.Add(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
-                        //String eFolder = Path.Combine(errorFolder, Path.GetFileName(processedJob.SourcePath));
-                        //String ePath = processedJob.SourcePath;
-                        //File.Move(ePath, eFolder);
-                        //savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), "");
+                        
                     }
                     else
                     {  //生成成功
@@ -139,18 +133,20 @@ namespace WindowsFormsApplication1
                         String outputExtension = Path.GetExtension(wordTemporaryPath);
                         excelpath = Path.ChangeExtension(excelpath, outputExtension);
                         listBoxFiles.Items.Add(d1+" start convert..." + excelpath);
+                        AnnouncementEntity announcement = (AnnouncementEntity)processedJob.CustomData;
                         if (File.Exists(wordTemporaryPath))
                         {
                             FileUtil.createDir(Path.GetDirectoryName(excelpath));
                             File.Copy(wordTemporaryPath, excelpath, true);
                             ExcelUtil eu = new ExcelUtil();
-                            List<String> pathList = eu.createChildExcel(excelpath);
+                            List<KeyValEntity> pathList = eu.createChildExcel(excelpath);
                             if (pathList != null) {
                                 String txtPath = Path.ChangeExtension(excelpath, ".txt");
-                                List<TableEntity> tbPostionList = TestTxt.SolidModelLayoutTest1(processedJob.SourcePath, txtPath);
+                                List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(processedJob.SourcePath, txtPath);
                                 listBoxFiles.Items.Add(DateTime.Now.ToString() + " success: " + excelpath);
                                 int index = 0;
-                                foreach(String subExcelPath in pathList){
+                                foreach (KeyValEntity kve in pathList)
+                                {
                                     if (tbPostionList == null || index >= tbPostionList.Count)
                                     {
                                         break;
@@ -160,45 +156,25 @@ namespace WindowsFormsApplication1
                                         continue;
                                     }
                                     //添加对应关系
-                                    String saveExcelPath = subExcelPath.Substring(subExcelPath.IndexOf("GSGGFWB"));
+                                    String saveExcelPath = kve.key.Substring(kve.key.IndexOf("GSGGFWB"));
+                                    kve.desc = saveExcelPath;
                                     listBoxFiles.Items.Add(d1 + " save path: " + saveExcelPath);
                                     //保存到pdf_to_excel表中
-                                    savePdfToExcelInfo(articleList, Path.GetFileName(processedJob.SourcePath), saveExcelPath, tb);
+                                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), announcement.doc_id+"-"+kve.value);
+                                    dao.savePdfToExcelInfo(announcement,kve,tb);
                                     index++;
                                 }
-                                File.Delete(txtPath);
+                                //更新pdfstream表的excelflag
+                                dao.updatePdfStreamInfo(announcement);
                             }
                         }
+                        Thread.Sleep(50);
                     }
                 }
 
-                
-
                 //结束生成
                 listBoxFiles.Items.Add("convert end .....");
-                //buttonStart.Enabled = true;
-                //buttonStop.Enabled = false;
             }
-        }
-
-        public void savePdfToExcelInfo(List<AnnouncementEntity> articleList,String pdfName,String excelPath,TableEntity tb)
-        {
-            foreach (AnnouncementEntity ae in articleList)
-            {
-                if (ae.pdfPath.Contains(pdfName))
-                {
-                        if (excelPath.Equals(""))
-                        {
-                            //dao.savePdfToExcelInfo(ae, excelPath,false);
-                        }
-                        else
-                        {
-                            dao.savePdfToExcelInfo(ae, excelPath, true, tb);
-                        }
-                        break;
-                }
-            }
-        
         }
 
         private void button1_Click(object sender, EventArgs e)

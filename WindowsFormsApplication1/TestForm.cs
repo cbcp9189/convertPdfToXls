@@ -14,6 +14,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -388,9 +389,8 @@ namespace WindowsFormsApplication1
 
         private void button8_Click(object sender, EventArgs e)
         {
-            DataBaseConnect dc = new DataBaseConnect();
-            String sql = "UPDATE sys_config SET set_by = 2 where variable = 'diagnostics.include_raw'";
-            dc.getmysqlcom(sql);
+            //Dao d = new Dao();
+            //d.testspecilStr();
             Console.WriteLine("end.....");
         }
 
@@ -409,8 +409,7 @@ namespace WindowsFormsApplication1
                 String txtPath = Path.ChangeExtension(pdfPath, ".txt");
                 DateTime d1 = System.DateTime.Now;
                 Console.WriteLine(d1);
-                TestTxt.SolidModelLayoutTest1(pdfPath, txtPath);
-
+                TestTxt.SolidModelLayout(pdfPath, txtPath);
                 DateTime d2 = System.DateTime.Now;
                 Console.WriteLine(d2);
                 Console.WriteLine(d1.Second - d2.Second);
@@ -447,6 +446,7 @@ namespace WindowsFormsApplication1
 
         private void toTxtButton_Click(object sender, EventArgs e)
         {
+            LogHelper.WriteLog(typeof(TestForm), "测试Log4Net日志是否写入..............");
             OpenFileDialog OpFile = new OpenFileDialog();
             //show only PDF Files 
             //OpFile.Filter = "PDF Files (*.xls)|*.xlsx";
@@ -455,17 +455,20 @@ namespace WindowsFormsApplication1
                 String path = OpFile.FileName;
                 XLWorkbook workBook = new XLWorkbook(path);
                 IXLWorksheet workSheet = workBook.Worksheet(1);
-                int count = workSheet.RowCount();
-                for (int i = 1; i <= count; i++)
+                var rows = workSheet.RowsUsed();
+                StringBuilder text = new StringBuilder("");
+                foreach (var row in rows)
                 {
-                    IXLRow row =  workSheet.Row(i);
-                    int cellcount = row.CellCount();
-                    for (int j = 1; j <= count; j++)
-                    { 
-                        
+                    //遍历所有的Cells
+                    foreach (var cell in row.Cells())
+                    {
+                        text.Append(cell.RichText.ToString()+" ");
                     }
-
                 }
+                String result = Regex.Replace(text.ToString(), "\\s+", " ");
+                Console.WriteLine(result);
+                Dao dao = new Dao();
+                dao.testspecilStr(result);
             }
         }
 
