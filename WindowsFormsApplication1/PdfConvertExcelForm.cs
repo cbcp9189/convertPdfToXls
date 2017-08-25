@@ -31,7 +31,7 @@ namespace WindowsFormsApplication1
         public PdfConvertExcelForm()
         {
             InitializeComponent();
-            ThreadPool.SetMaxThreads(5,10);
+            ThreadPool.SetMaxThreads(3,3);
         }
         //开始转换
         private void buttonChoose_Click(object sender, EventArgs e)
@@ -40,37 +40,21 @@ namespace WindowsFormsApplication1
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
             //获取数据
-            long minId = dao.getMinId();
-            long maxId = dao.getMaxId();
-
-            long jianju = (maxId - minId) / 5;
-            for (int a = 0; a < 5; a++)
+            long minId = 0;
+            List<AnnouncementEntity> articleList = dao.getAnnouncementList(minId, LIMIT);
+            while (startFlag && articleList != null && articleList.Count > 0) 
             {
-                long param1 = minId + (a * jianju);
-                long param2 = minId + (a + 1) * jianju;
-
-                ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
-
+                //startThreadAddItem(minId + "-" + limit);
+                ThreadPool.QueueUserWorkItem(new WaitCallback(dealPdfConvertExcel), articleList);
+                Thread.Sleep(2000);
+                minId += 50;
+                articleList = dao.getAnnouncementList(minId, LIMIT);
             }
-        }
 
-        public void handlePdf(Object str) {
-            String[] param  = str.ToString().Split('-');
-            long minid = int.Parse(param[0]);
-            long maxid = int.Parse(param[1]);
-            
-            while (startFlag && minid <= maxid)
-            {
-                //listBoxFiles.Items.Add(minid + "--" + LIMIT);
-                LogHelper.WriteLog(typeof(PdfConvertExcelForm), minid + "-" + (LIMIT));
-                List<AnnouncementEntity> articleList = dao.getAnnouncementList(minid, minid+LIMIT);
-                dealPdfConvertExcel(articleList);
-                minid += LIMIT;
-                //if (listBoxFiles.Items.Count > 5000) {
-                    //listBoxFiles.Items.Clear();
-                //}
-            }
+            //ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
+
         }
+        
         private void buttonClear_Click(object sender, EventArgs e)
         {
             //listBoxFiles.Items.Clear();
@@ -85,8 +69,9 @@ namespace WindowsFormsApplication1
             buttonStop.Enabled = false;
         }
 
-        private void dealPdfConvertExcel(List<AnnouncementEntity> articleList)
+        private void dealPdfConvertExcel(Object list)
         {
+            List<AnnouncementEntity> articleList = (List<AnnouncementEntity>)list;
             using (JobProcessor processor = new JobProcessor())
             {
                 try
@@ -122,13 +107,16 @@ namespace WindowsFormsApplication1
                 
                     foreach (JobEnvelope processedJob in processor.ProcessedJobs)
                     {
-
+                        AnnouncementEntity announcement = (AnnouncementEntity)processedJob.CustomData;
                         if ((processedJob.Status != SolidFramework.Services.Plumbing.JobStatus.Success) || (processedJob.OutputPaths.Count != 1))
                         {
                             // report errors to the console window 
                             //Console.WriteLine(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
                             //listBoxFiles.Items.Add(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
                             LogHelper.WriteLog(typeof(PdfConvertExcelForm), Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
+                            //将pdf_stream表excel_flag标识改为 -1
+                            dao.updatePdfStreamInfo(announcement,-1);
+
                         }
                         else
                         {  //生成成功
@@ -139,7 +127,6 @@ namespace WindowsFormsApplication1
                             excelpath = Path.ChangeExtension(excelpath, outputExtension);
                             LogHelper.WriteLog(typeof(PdfConvertExcelForm), "temp path "+outputExtension);
                             // listBoxFiles.Items.Add(d1+" start convert..." + excelpath);
-                            AnnouncementEntity announcement = (AnnouncementEntity)processedJob.CustomData;
                             if (File.Exists(wordTemporaryPath))
                             {
                                 FileUtil.createDir(Path.GetDirectoryName(excelpath));
@@ -173,7 +160,7 @@ namespace WindowsFormsApplication1
                                         index++;
                                     }
                                     //更新pdfstream表的excelflag
-                                    dao.updatePdfStreamInfo(announcement);
+                                    dao.updatePdfStreamInfo(announcement,1);
                                 }
                             }
                             Thread.Sleep(50);

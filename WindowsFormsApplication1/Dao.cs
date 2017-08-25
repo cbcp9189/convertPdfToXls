@@ -122,11 +122,12 @@ namespace WindowsFormsApplication1
             Console.WriteLine("insert and update end.....");
         }
 
-        public void updatePdfStreamInfo(AnnouncementEntity aey)
+        public void updatePdfStreamInfo(AnnouncementEntity aey,int status)
         {
             //更新pdf_stream表中的excel_flag和version字段
-            StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = 1,");
-            updateSql.Append("version = ");
+            StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = ");
+            updateSql.Append(status);
+            updateSql.Append(" ,version = ");
             updateSql.Append(DateTimeUtil.GetTimeStampWithMs());
             updateSql.Append(" where doc_id = ");
             updateSql.Append(aey.doc_id);
@@ -137,7 +138,7 @@ namespace WindowsFormsApplication1
             MySqlCommand mysqlcom1 = new MySqlCommand(updateSql.ToString(), con);
             mysqlcom1.ExecuteNonQuery();
             con.Close();
-            Console.WriteLine("insert and update end.....");
+            Console.WriteLine("update end.....");
         }
 
         public Boolean getAnnouncementCount(long id,int doc_type)
