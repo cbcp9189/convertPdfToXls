@@ -477,5 +477,25 @@ namespace WindowsFormsApplication1
             Console.WriteLine(DateTimeUtil.GetTimeStamp());
 
         }
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            startThreadAddItem("hello world");
+
+        }
+
+        public void startThreadAddItem(String context)
+        {
+            Thread t2 = new Thread(new ParameterizedThreadStart(addBoxItem));
+            t2.Start(context);
+        }
+
+        public void addBoxItem(Object item) {
+            ThreadStart ts = delegate
+            {
+                listBox1.Items.Add(item);
+            };
+            this.BeginInvoke(ts);
+        }
     }
 }

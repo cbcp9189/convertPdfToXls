@@ -170,7 +170,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream");
+            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream ");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
 
             MySqlDataReader reader = mysqlcom.ExecuteReader();
@@ -189,7 +189,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream");
+            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream where doc_type = 13 and pdf_path like '%/2016/%'");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             MySqlDataReader reader = mysqlcom.ExecuteReader();
             if (reader.Read())
@@ -207,10 +207,10 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13  AND excel_flag = 0 ");
+            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13  AND excel_flag = 0  and pdf_path like '%/2016/%' ");
             sql.Append(" and id >= ");
             sql.Append(start);
-            sql.Append(" and id <");
+            sql.Append(" and id < ");
             sql.Append(end);
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             MySqlDataReader reader = mysqlcom.ExecuteReader();
@@ -221,12 +221,11 @@ namespace WindowsFormsApplication1
                 ae.id = (long)reader["id"];
                 ae.doc_id = (long)reader["doc_id"];
                 ae.pdfPath = (string)reader["pdf_path"];
-                ae.doc_type = (byte)reader["doc_type"];
+                ae.doc_type = 13;
                 list.Add(ae);
-
             }
             con.Close();
-            Console.WriteLine("get list end.....");
+            Console.WriteLine("get list end....."+sql.ToString());
             return list;
         }
 

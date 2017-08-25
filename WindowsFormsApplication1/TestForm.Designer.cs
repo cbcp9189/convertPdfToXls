@@ -41,6 +41,8 @@
             this.excelbutton = new System.Windows.Forms.Button();
             this.toTxtButton = new System.Windows.Forms.Button();
             this.button10 = new System.Windows.Forms.Button();
+            this.button11 = new System.Windows.Forms.Button();
+            this.listBox1 = new System.Windows.Forms.ListBox();
             this.SuspendLayout();
             // 
             // button1
@@ -165,7 +167,7 @@
             // 
             // button10
             // 
-            this.button10.Location = new System.Drawing.Point(246, 306);
+            this.button10.Location = new System.Drawing.Point(131, 282);
             this.button10.Name = "button10";
             this.button10.Size = new System.Drawing.Size(75, 23);
             this.button10.TabIndex = 12;
@@ -173,11 +175,32 @@
             this.button10.UseVisualStyleBackColor = true;
             this.button10.Click += new System.EventHandler(this.button10_Click);
             // 
+            // button11
+            // 
+            this.button11.Location = new System.Drawing.Point(751, 223);
+            this.button11.Name = "button11";
+            this.button11.Size = new System.Drawing.Size(77, 41);
+            this.button11.TabIndex = 13;
+            this.button11.Text = "mutthreadbutton1";
+            this.button11.UseVisualStyleBackColor = true;
+            this.button11.Click += new System.EventHandler(this.button11_Click);
+            // 
+            // listBox1
+            // 
+            this.listBox1.FormattingEnabled = true;
+            this.listBox1.ItemHeight = 12;
+            this.listBox1.Location = new System.Drawing.Point(246, 324);
+            this.listBox1.Name = "listBox1";
+            this.listBox1.Size = new System.Drawing.Size(275, 100);
+            this.listBox1.TabIndex = 14;
+            // 
             // TestForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(867, 447);
+            this.Controls.Add(this.listBox1);
+            this.Controls.Add(this.button11);
             this.Controls.Add(this.button10);
             this.Controls.Add(this.toTxtButton);
             this.Controls.Add(this.excelbutton);
@@ -212,6 +235,8 @@
         private System.Windows.Forms.Button excelbutton;
         private System.Windows.Forms.Button toTxtButton;
         private System.Windows.Forms.Button button10;
+        private System.Windows.Forms.Button button11;
+        private System.Windows.Forms.ListBox listBox1;
     }
 }
 

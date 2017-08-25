@@ -18,7 +18,7 @@ namespace WindowsFormsApplication1.util
             public static void WriteLog(Type t, Exception ex)
             {
                 log4net.ILog log = log4net.LogManager.GetLogger(t);
-                log.Error("Error", ex);
+                log.Info("Error", ex);
             }
 
             #endregion

@@ -72,8 +72,7 @@ namespace WindowsFormsApplication1
                                     tb.totalPage = layoutDoc.Count;
                                     tb.pageNumber = pageIndex;
                                     LayoutTable coll = obj as LayoutTable;
-                                    file.WriteLine("Table [ID={0}]", coll.GetID());
-                                    Console.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},buttom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
+                                    file.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},buttom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
                                         , coll.Bounds.Top, coll.Bounds.Bottom);
                                     tb.left = coll.Bounds.Left;
                                     tb.right = coll.Bounds.Right;
