@@ -5,6 +5,8 @@ using SolidFramework.Converters.Plumbing;
 using SolidFramework.Pdf;
 using SolidFramework.Pdf.Transformers;
 using SolidFramework.Plumbing;
+using SolidFramework.Services;
+using SolidFramework.Services.Plumbing;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -127,22 +129,42 @@ namespace WindowsFormsApplication1
                 String pdfPath = OpFile.FileName;
                 String xlsFile = Path.ChangeExtension(pdfPath, "xls");
                 Console.WriteLine(xlsFile);
-                using (PdfToExcelConverter converter = new PdfToExcelConverter())
+                using (JobProcessor processor = new JobProcessor())
                 {
-                    // Add files to convert. 
-                    converter.AddSourceFile(pdfPath);
-                    //Set the preferred conversion properties 
-                    //converter.OutputType = ExcelDocumentType.Xls;
+                        processor.KeepJobs = true;
+                        PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
+                        jobEnvelope.SourcePath = pdfPath;
+                        jobEnvelope.SingleTable = 0;
+                        jobEnvelope.TablesFromContent = false;
+                        processor.SubmitJob(jobEnvelope);
+                        processor.WaitTillComplete();
+                        Thread.Sleep(500);
 
-                    //This combines all tables onto one sheet 
-                    converter.SingleTable = ExcelTablesOnSheet.PlaceEachTableOnOwnSheet;
+                    foreach (JobEnvelope processedJob in processor.ProcessedJobs)
+                    {
+                        if ((processedJob.Status != SolidFramework.Services.Plumbing.JobStatus.Success) || (processedJob.OutputPaths.Count != 1))
+                        {
+                            //Console.WriteLine(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
+                            //listBoxFiles.Items.Add(Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
+                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
 
-                    //This gets Non Table Content 
-                    converter.TablesFromContent = false;
-
-                    //convert the file, calling it the same name but with a different extention , setting overwrite to true 
-                    converter.ConvertTo(xlsFile, true);
-                    Console.WriteLine(".................end");
+                        }
+                        else
+                        {  //生成成功
+                            String wordTemporaryPath = processedJob.OutputPaths[0];
+                            String outputExtension = Path.GetExtension(wordTemporaryPath);
+                            Console.WriteLine(wordTemporaryPath);
+                            String excelpath = Path.ChangeExtension(processedJob.SourcePath, outputExtension);
+                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "temp path " + excelpath);
+                            // listBoxFiles.Items.Add(d1+" start convert..." + excelpath);
+                            if (File.Exists(wordTemporaryPath))
+                            {
+                                FileUtil.createDir(Path.GetDirectoryName(excelpath));
+                                File.Copy(wordTemporaryPath, excelpath, true);
+                            }
+                            Thread.Sleep(50);
+                        }
+                    }
                 }
             }
         }

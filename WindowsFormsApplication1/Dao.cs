@@ -75,7 +75,8 @@ namespace WindowsFormsApplication1
                 ae.doc_type = 13;
                 list.Add(ae);
             }
-            Console.WriteLine("get list end.....");
+            Console.WriteLine("get list end....." + sql);
+            LogHelper.WriteLog(typeof(Dao),sql.ToString());
             con.Close();
             return list;
         }
@@ -129,15 +130,16 @@ namespace WindowsFormsApplication1
             updateSql.Append(status);
             updateSql.Append(" ,version = ");
             updateSql.Append(DateTimeUtil.GetTimeStampWithMs());
-            updateSql.Append(" where doc_id = ");
-            updateSql.Append(aey.doc_id);
-            updateSql.Append(" AND doc_type = ");
-            updateSql.Append(aey.doc_type);
+            updateSql.Append(" where id = ");
+            updateSql.Append(aey.id);
+            //updateSql.Append(" AND doc_type = ");
+            //updateSql.Append(aey.doc_type);
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom1 = new MySqlCommand(updateSql.ToString(), con);
             mysqlcom1.ExecuteNonQuery();
             con.Close();
+            LogHelper.WriteLog(typeof(Dao),updateSql.ToString());
             Console.WriteLine("update end.....");
         }
 
@@ -166,6 +168,27 @@ namespace WindowsFormsApplication1
             Console.WriteLine("get getAnnouncementCount end.....");
             return false;
         }
+
+        public long getPdfStreamCount(int doc_type)
+        {
+
+            StringBuilder sql = new StringBuilder("SELECT count(*) count from pdf_stream where ");
+            sql.Append("doc_type = ");
+            sql.Append(doc_type);
+            sql.Append(" and pdf_path like '%/2016/%' ");
+            MySqlConnection con = getmysqlcon();
+            con.Open();
+            MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
+            MySqlDataReader reader = mysqlcom.ExecuteReader();
+            if (reader.Read())
+            {
+                long count = (long)reader["count"];
+                con.Close();
+                return count;
+            }
+            return 0;
+        }
+
 
         public long getMinId()
         {

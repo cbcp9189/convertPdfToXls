@@ -40,24 +40,36 @@ namespace WindowsFormsApplication1
             buttonStart.Enabled = false;
             buttonStop.Enabled = true;
             //获取数据
-            long minId = 0;
-            List<AnnouncementEntity> articleList = dao.getAnnouncementList(minId, LIMIT);
-            while (startFlag && articleList != null && articleList.Count > 0) 
+            long count = dao.getPdfStreamCount(13);
+            long maxId = dao.getMaxId();
+
+            long jianju = count / 3;
+            for (int a = 0; a < 2; a++)
             {
-                //startThreadAddItem(minId + "-" + limit);
-                ThreadPool.QueueUserWorkItem(new WaitCallback(dealPdfConvertExcel), articleList);
-                Thread.Sleep(2000);
-                minId += 50;
-                articleList = dao.getAnnouncementList(minId, LIMIT);
+                long param1 =  (a * jianju);
+                long param2 =  (a + 1) * jianju;
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), param1 + "-" + param2);
+                ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
             }
-
-            //ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
-
         }
-        
+
+        public void handlePdf(Object str) {
+            String[] param  = str.ToString().Split('-');
+            long minid = int.Parse(param[0]);
+            long maxid = int.Parse(param[1]);
+            while (startFlag && minid <= maxid)
+            {
+                //listBoxFiles.Items.Add(minid + "--" + LIMIT);
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), minid + "-" + (LIMIT));
+                List<AnnouncementEntity> articleList = dao.getAnnouncementList(minid, LIMIT);
+                dealPdfConvertExcel(articleList);
+                minid += LIMIT;
+            }
+        }
+
         private void buttonClear_Click(object sender, EventArgs e)
         {
-            //listBoxFiles.Items.Clear();
+            startThreadremoveItem();
 
             //listBoxFiles.Focus();
         }
@@ -69,9 +81,8 @@ namespace WindowsFormsApplication1
             buttonStop.Enabled = false;
         }
 
-        private void dealPdfConvertExcel(Object list)
+        private void dealPdfConvertExcel(List<AnnouncementEntity> articleList)
         {
-            List<AnnouncementEntity> articleList = (List<AnnouncementEntity>)list;
             using (JobProcessor processor = new JobProcessor())
             {
                 try
@@ -202,6 +213,21 @@ namespace WindowsFormsApplication1
             ThreadStart ts = delegate
             {
                 listBoxFiles.Items.Add(item);
+            };
+            this.BeginInvoke(ts);
+        }
+
+        public void startThreadremoveItem()
+        {
+            Thread t3 = new Thread(removeBoxItem);
+            t3.Start();
+        }
+
+        public void removeBoxItem()
+        {
+            ThreadStart ts = delegate
+            {
+                listBoxFiles.Items.Clear();
             };
             this.BeginInvoke(ts);
         }
