@@ -7,6 +7,7 @@ using SolidFramework.Pdf.Transformers;
 using SolidFramework.Plumbing;
 using SolidFramework.Services;
 using SolidFramework.Services.Plumbing;
+using Spire.Xls;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -134,7 +135,7 @@ namespace WindowsFormsApplication1
                         processor.KeepJobs = true;
                         PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
                         jobEnvelope.SourcePath = pdfPath;
-                        jobEnvelope.SingleTable = 0;
+                        jobEnvelope.SingleTable = ExcelTablesOnSheet.PlaceEachTableOnOwnSheet;
                         jobEnvelope.TablesFromContent = false;
                         processor.SubmitJob(jobEnvelope);
                         processor.WaitTillComplete();
@@ -446,21 +447,11 @@ namespace WindowsFormsApplication1
 
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-
                 String excelPath = OpFile.FileName;
-                Console.WriteLine("{0}", excelPath);
-               
-                DateTime d1 = System.DateTime.Now;
-                Console.WriteLine(d1);
+                Workbook workbook = new Workbook();
+                workbook.LoadFromFile(excelPath);
+                Worksheet sheet = workbook.Worksheets[0];
 
-                string convertxlsPath = Path.ChangeExtension(excelPath, "searchable.xls");
-                //ExcelUtil.createExcel2(excelPath);
-
-                //ExcelUtil.WriteExcel(dt,convertxlsPath);
-
-                DateTime d2 = System.DateTime.Now;
-                Console.WriteLine(d2);
-                Console.WriteLine(d1.Second - d2.Second);
             }
 
 
@@ -468,6 +459,13 @@ namespace WindowsFormsApplication1
 
         private void toTxtButton_Click(object sender, EventArgs e)
         {
+            //Excel的文档结构是 Workbook->Worksheet（1个book可以包含多个sheet）
+            Workbook workbook = new Workbook();
+
+            //获取第一个sheet，进行操作，下标是从0开始
+            Worksheet sheet = workbook.Worksheets[0];
+
+
             LogHelper.WriteLog(typeof(TestForm), "测试Log4Net日志是否写入..............");
             OpenFileDialog OpFile = new OpenFileDialog();
             //show only PDF Files 
@@ -484,7 +482,21 @@ namespace WindowsFormsApplication1
                     //遍历所有的Cells
                     foreach (var cell in row.Cells())
                     {
-                        text.Append(cell.RichText.ToString()+" ");
+                        String str1 = cell.GetFormattedString();
+                        if (cell.DataType == XLCellValues.DateTime)
+                        {
+                            if (cell.RichText.ToString().Contains("@"))
+                            {
+                                String val = cell.RichText.ToString().Replace("@", "");
+                                text.Append(val+" ");
+                            }
+                        }
+                        else 
+                        {
+                            text.Append(cell.RichText.ToString() + " ");
+                        }
+                        
+                       
                     }
                 }
                 String result = Regex.Replace(text.ToString(), "\\s+", " ");

@@ -55,12 +55,11 @@ namespace WindowsFormsApplication1
 
         public List<AnnouncementEntity> getAnnouncementList(long index, int count)
         {
-            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13 AND excel_flag = 0 and pdf_path like '%/2016/%' ");
+            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13 AND excel_flag = 0 and update_flag = 3 ");
             sql.Append(" limit ");
             sql.Append(index);
             sql.Append(",");
             sql.Append(count);
-            
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
@@ -128,8 +127,7 @@ namespace WindowsFormsApplication1
             //更新pdf_stream表中的excel_flag和version字段
             StringBuilder updateSql = new StringBuilder("UPDATE pdf_stream SET excel_flag = ");
             updateSql.Append(status);
-            updateSql.Append(" ,version = ");
-            updateSql.Append(DateTimeUtil.GetTimeStampWithMs());
+            updateSql.Append(" ,version =unix_timestamp(now())");
             updateSql.Append(" where id = ");
             updateSql.Append(aey.id);
             //updateSql.Append(" AND doc_type = ");
@@ -175,7 +173,7 @@ namespace WindowsFormsApplication1
             StringBuilder sql = new StringBuilder("SELECT count(*) count from pdf_stream where ");
             sql.Append("doc_type = ");
             sql.Append(doc_type);
-            sql.Append(" and pdf_path like '%/2016/%' ");
+            sql.Append(" and update_flag = 3 ");
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
@@ -194,7 +192,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream ");
+            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream where update_flag = 4 ");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
 
             MySqlDataReader reader = mysqlcom.ExecuteReader();
@@ -213,7 +211,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream where doc_type = 13 and pdf_path like '%/2016/%'");
+            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream where update_flag = 4 ");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             MySqlDataReader reader = mysqlcom.ExecuteReader();
             if (reader.Read())

@@ -48,7 +48,16 @@ namespace WindowsFormsApplication1.util
                     //遍历所有的Cells
                     foreach (var cell in row.Cells())
                     {
-                        text.Append(cell.RichText.ToString() + " ");
+                        if (cell.DataType == XLCellValues.DateTime)
+                        {
+                                String val = cell.RichText.ToString().Replace("@", "");
+                                text.Append(val + " ");
+                        }
+                        else
+                        {
+                            text.Append(cell.RichText.ToString() + " ");
+                        }
+                        
                     }
                 }
                 kvey.key = path;

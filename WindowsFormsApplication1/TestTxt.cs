@@ -41,101 +41,107 @@ namespace WindowsFormsApplication1
         }
         static List<TableEntity> TraceToTxt1(LayoutDocument layoutDoc, string outputFile)
         {
-            List<TableEntity> tbList = new List<TableEntity>();
-            using (StreamWriter file = new StreamWriter(outputFile))
+            try
             {
-                file.WriteLine("TOTAL PAGES: {0}\n", layoutDoc.Count);
-                int pageIndex = 0;
-                foreach (LayoutObject page in layoutDoc)
+                List<TableEntity> tbList = new List<TableEntity>();
+                using (StreamWriter file = new StreamWriter(outputFile))
                 {
-
-                    RectangleF pageBounds = page.Bounds;
-                    file.WriteLine("PAGE #{0} (Left={1} Right={2} Top={3} Bottom={4}):\n",
-                        ++pageIndex, pageBounds.Left, pageBounds.Right, pageBounds.Top, pageBounds.Bottom);
-                    Action<StreamWriter, LayoutObject> dumpEntities = null;
-                    dumpEntities = (StreamWriter stream, LayoutObject obj) =>
+                    file.WriteLine("TOTAL PAGES: {0}\n", layoutDoc.Count);
+                    int pageIndex = 0;
+                    foreach (LayoutObject page in layoutDoc)
                     {
-                        switch (obj.GetObjectType())
+
+                        RectangleF pageBounds = page.Bounds;
+                        file.WriteLine("PAGE #{0} (Left={1} Right={2} Top={3} Bottom={4}):\n",
+                            ++pageIndex, pageBounds.Left, pageBounds.Right, pageBounds.Top, pageBounds.Bottom);
+                        Action<StreamWriter, LayoutObject> dumpEntities = null;
+                        dumpEntities = (StreamWriter stream, LayoutObject obj) =>
                         {
-                            case LayoutObjectType.Page:
-                                {
-                                    LayoutPage coll = obj as LayoutPage;
-                                    foreach (LayoutObject obj1 in coll)
+                            switch (obj.GetObjectType())
+                            {
+                                case LayoutObjectType.Page:
                                     {
-                                        dumpEntities(stream, obj1);
+                                        LayoutPage coll = obj as LayoutPage;
+                                        foreach (LayoutObject obj1 in coll)
+                                        {
+                                            dumpEntities(stream, obj1);
+                                        }
                                     }
-                                }
-                                break;
-                            case LayoutObjectType.Table:
-                                {
-                                    TableEntity tb = new TableEntity();
-                                    tb.totalPage = layoutDoc.Count;
-                                    tb.pageNumber = pageIndex;
-                                    LayoutTable coll = obj as LayoutTable;
-                                    file.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},buttom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
-                                        , coll.Bounds.Top, coll.Bounds.Bottom);
-                                    tb.left = coll.Bounds.Left;
-                                    tb.right = coll.Bounds.Right;
-                                    tb.top = coll.Bounds.Top;
-                                    tb.bottom = coll.Bounds.Bottom;
-                                    tbList.Add(tb);
+                                    break;
+                                case LayoutObjectType.Table:
+                                    {
+                                        TableEntity tb = new TableEntity();
+                                        tb.totalPage = layoutDoc.Count;
+                                        tb.pageNumber = pageIndex;
+                                        LayoutTable coll = obj as LayoutTable;
+                                        file.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},buttom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
+                                            , coll.Bounds.Top, coll.Bounds.Bottom);
+                                        tb.left = coll.Bounds.Left;
+                                        tb.right = coll.Bounds.Right;
+                                        tb.top = coll.Bounds.Top;
+                                        tb.bottom = coll.Bounds.Bottom;
+                                        tbList.Add(tb);
 
-                                    file.WriteLine(String.Empty);
-                                    foreach (LayoutObject obj1 in coll)
-                                    {
-                                        dumpEntities(stream, obj1);
-                                    }
-                                }
-                                break;
-                            case LayoutObjectType.Group:
-                                {
-                                    LayoutGroup coll = obj as LayoutGroup;
-                                    file.WriteLine("Group [ID={0}]", coll.GetID());
-                                    file.WriteLine(String.Empty);
-                                    foreach (LayoutObject obj1 in coll)
-                                    {
-                                        dumpEntities(stream, obj1);
-                                    }
-                                }
-                                break;
-                            case LayoutObjectType.TextBox:
-                                {
-                                    LayoutTextBox coll = obj as LayoutTextBox;
-                                    file.WriteLine("TextBox [ID={0}]", coll.GetID());
-                                    file.WriteLine(String.Empty);
-                                    foreach (LayoutObject obj1 in coll)
-                                    {
-                                        dumpEntities(stream, obj1);
-                                    }
-                                }
-                                break;
-                            case LayoutObjectType.Paragraph:
-                                {
-                                    LayoutParagraph par = obj as LayoutParagraph;
-
-                                    string parText = par.AllText;
-                                    if (0 != parText.Length)
-                                    {
-                                        RectangleF bounds = par.Bounds;
-                                        file.WriteLine("Paragraph [ID={4}] (Left={0} Right={1} Top={2} Bottom={3}):\n" + parText,
-                                            bounds.Left, bounds.Right, bounds.Top, bounds.Bottom, par.GetID());
                                         file.WriteLine(String.Empty);
+                                        foreach (LayoutObject obj1 in coll)
+                                        {
+                                            dumpEntities(stream, obj1);
+                                        }
                                     }
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    };
+                                    break;
+                                case LayoutObjectType.Group:
+                                    {
+                                        LayoutGroup coll = obj as LayoutGroup;
+                                        file.WriteLine("Group [ID={0}]", coll.GetID());
+                                        file.WriteLine(String.Empty);
+                                        foreach (LayoutObject obj1 in coll)
+                                        {
+                                            dumpEntities(stream, obj1);
+                                        }
+                                    }
+                                    break;
+                                case LayoutObjectType.TextBox:
+                                    {
+                                        LayoutTextBox coll = obj as LayoutTextBox;
+                                        file.WriteLine("TextBox [ID={0}]", coll.GetID());
+                                        file.WriteLine(String.Empty);
+                                        foreach (LayoutObject obj1 in coll)
+                                        {
+                                            dumpEntities(stream, obj1);
+                                        }
+                                    }
+                                    break;
+                                case LayoutObjectType.Paragraph:
+                                    {
+                                        LayoutParagraph par = obj as LayoutParagraph;
 
-                    dumpEntities(file, page);
+                                        string parText = par.AllText;
+                                        if (0 != parText.Length)
+                                        {
+                                            RectangleF bounds = par.Bounds;
+                                            file.WriteLine("Paragraph [ID={4}] (Left={0} Right={1} Top={2} Bottom={3}):\n" + parText,
+                                                bounds.Left, bounds.Right, bounds.Top, bounds.Bottom, par.GetID());
+                                            file.WriteLine(String.Empty);
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
+                        };
+
+                        dumpEntities(file, page);
+                    }
+
+
+                    file.Flush();
+                    file.Close();
+
+                    return tbList;
                 }
-
-
-                file.Flush();
-                file.Close();
-
-                return tbList;
+            }
+            catch (Exception ex) {
+                return null;
             }
         }
     }
