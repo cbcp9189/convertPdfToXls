@@ -21,6 +21,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WindowsFormsApplication1.constant;
+using WindowsFormsApplication1.entity;
 using WindowsFormsApplication1.util;
 
 namespace WindowsFormsApplication1
@@ -30,7 +32,7 @@ namespace WindowsFormsApplication1
         public static String remoteRoot = "/data/dearMrLei/data/subscriptions/";
         public static String localRoot = "D:\\test\\pdf\\";
         public static String chiPath = "D:\\tesseract\0823";
-       
+        
         public TestForm()
         {
             InitializeComponent();
@@ -397,7 +399,7 @@ namespace WindowsFormsApplication1
                     try
                     {
                         solid.pdfConvertWord(downloadPath);
-                        solid.pdfConvertExcel(downloadPath);
+                        //solid.pdfConvertExcel(downloadPath);
                     }
                     catch
                     {
@@ -428,14 +430,227 @@ namespace WindowsFormsApplication1
             {
                 String pdfPath = OpFile.FileName;
                 Console.WriteLine("{0}", pdfPath);
-                String htmlPath = Path.ChangeExtension(pdfPath, ".html");
+                //String htmlPath = Path.ChangeExtension(pdfPath, ".html");
                 String txtPath = Path.ChangeExtension(pdfPath, ".txt");
                 DateTime d1 = System.DateTime.Now;
                 Console.WriteLine(d1);
-                TestTxt.SolidModelLayout(pdfPath, txtPath);
+                List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
+                
+                //对txt中的table进行合并
+                List<TableEntity> mergeTableList = mergeTable(tbPostionList);
+                //生成excel
+                String excelPath = SolidConvertUtil.pdfConvertExcel(pdfPath);
+                //获取多个sheet的文本
+                ExcelUtil eu = new ExcelUtil();
+                List<IXLWorksheet> sheetList = eu.getExcelSheetList(excelPath);
+                int index = 0;
+                //List<TableEntity> resultList = new List<TableEntity>();
+                foreach (TableEntity tableEntity in mergeTableList) 
+                {
+                    int txtLen = tableEntity.content.Replace(" ", "").Replace("\n","").Length; //txt生成的表格文本长度
+                    String excelTxt = eu.getExcelSheetText(sheetList[index]);
+                    int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
+                    
+                    double rate = (double)txtLen / excelTxtLen;
+                    rate = Math.Round(rate, 3);
+                    string singleExcelPath = Path.ChangeExtension(excelPath, index + ".xlsx");
+                    if (rate < (1 + SysConstant.RANGE) && rate > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                    {
+                        eu.createExcelBySheet(sheetList[index], singleExcelPath);
+                        tableEntity.excelPath = singleExcelPath;
+                        tableEntity.flag = SysConstant.SUCCESS;
+                        
+                    }
+                    else if (rate <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                    {
+                        //报错
+                        tableEntity.flag = SysConstant.ERROR;
+                        Console.WriteLine("error....................");
+                        continue;
+                    }
+                    else if (rate >= (1 + SysConstant.RANGE))  //文本长度比例大于等于105%
+                    {
+                        int totalLen = excelTxtLen;
+                        int initIndex = index;
+                        Boolean isError = false;
+                        while (true) {
+                            //合并当前sheet跟下一个sheet
+                            index++;
+                            int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
+                            totalLen += secondSheetTxtLen;
+                            double rate1 = (double)txtLen / totalLen;
+                            rate1 = Math.Round(rate1, 3);
+                            if (rate1 < (1 + SysConstant.RANGE) && rate1 > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                            {
+                                //合并excel
+                                eu.createExcelBySheetList(sheetList, singleExcelPath,initIndex,index);
+                                tableEntity.flag = SysConstant.SUCCESS;
+                                break;
+                            }
+                            else if (rate1 <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                            {
+                                //报错
+                                tableEntity.flag = SysConstant.ERROR;
+                                Console.WriteLine("error....................");
+                                isError = true;
+                                break;
+                            }
+                        }
+                        if (isError) 
+                        {
+                            break;
+                        }
+                    }
+                    index++;
+                }
                 DateTime d2 = System.DateTime.Now;
                 Console.WriteLine(d2);
                 Console.WriteLine(d1.Second - d2.Second);
+            }
+        }
+
+        //分析表格是否需要合并
+        public List<TableEntity> mergeTable(List<TableEntity> tbPostionList)
+        {
+            List<TableEntity> mergeTableList = new List<TableEntity>();
+            TableEntity tableObj = null;
+            int currentPage = 1;
+            foreach (TableEntity te in tbPostionList)
+            {
+                if (te.pageNumber == currentPage)
+                {
+                    if (te.content_type == 2 )  //类型等于table时 
+                    {
+                        if (tableObj == null)
+                        {
+                            //currentPage = te.pageNumber;
+                            tableObj = te;
+                            continue;
+                        }
+                        else 
+                        {
+                            mergeTableList.Add(tableObj);
+                            tableObj = te;
+                            continue;
+                        }
+
+                    }
+                    else if (te.content_type == 6)  //等于段落
+                    {
+                        if (tableObj == null)  //忽略
+                        {
+                            continue;
+                        }
+                        else if (tableObj.bottom > te.bottom)
+                        {
+                            tableObj.content += te.content;
+                            continue;
+                        }
+                        else if (tableObj.bottom < te.bottom)
+                        {
+                            mergeTableList.Add(tableObj);
+                            tableObj = null;
+                            continue;
+                        }
+                    }
+                    else{
+                        continue;
+                    }
+                }
+                else   //不等于当前页
+                {
+                    currentPage = te.pageNumber;
+
+                    if (te.content_type == 2) 
+                    {
+                       
+                        if (tableObj == null) //说明是新表
+                        {
+                           
+                            tableObj = te;
+                            continue;
+                        }
+                        else
+                        {
+                            //合并的逻辑
+                            tableObj.bottom = te.bottom;
+                            tableObj.right = te.right;
+                            tableObj.pages++;
+                            continue;
+                        }
+                        
+                    }
+                    else if (te.content_type == 6)
+                    {
+
+                        if (tableObj == null)  //忽略
+                        {
+                            continue;
+                        }else
+                        {
+                            mergeTableList.Add(tableObj);
+                            tableObj = null;
+                            continue;
+                        }
+
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+            }
+            if (tableObj != null) 
+            {
+                mergeTableList.Add(tableObj);
+            }
+            foreach (TableEntity t in mergeTableList) {
+                Console.WriteLine(t.content);
+                Console.WriteLine(t.pageNumber+"--"+t.pages);
+                Console.WriteLine("-----------------");
+            }
+            Console.WriteLine("end..........");
+            return mergeTableList;
+        }
+
+        public void recursMergeTable(TableEntity tableObj, List<TableEntity> tbPostionList)
+        {
+            float botton = tableObj.bottom;  //表格右下角的位置
+            int contentId = tableObj.content_id;
+            Boolean isFirstTable = false;
+            int index = 0;
+            foreach (TableEntity subTe in tbPostionList)
+            {
+                if (subTe.content_type == 6 && subTe.content_id > contentId)  //等于段落
+                {
+                    if (subTe.bottom <= tableObj.bottom && subTe.pageNumber == tableObj.pageNumber)
+                    {
+                        tableObj.content += subTe.content;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else if (subTe.pageNumber > tableObj.pageNumber && subTe.content_type == 2 && index == 0)   //下一页的第一个元素是table
+                {
+                    isFirstTable = true;
+                    index++;
+                }
+                else if (subTe.pageNumber > tableObj.pageNumber && subTe.content_type == 6 && index == 0)   //下一页的第一个元素是Paragraph
+                {
+                    isFirstTable = false;
+                    index++;
+                    break;
+                }
+                if (isFirstTable)
+                {//进行合并
+                    tableObj.content_id = subTe.content_id;
+                    tableObj.pageNumber = subTe.pageNumber;
+                    tableObj.bottom = subTe.bottom;
+                    recursMergeTable(tableObj, tbPostionList);
+                    break;
+                }
             }
         }
 
@@ -447,11 +662,27 @@ namespace WindowsFormsApplication1
 
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                String excelPath = OpFile.FileName;
-                Workbook workbook = new Workbook();
-                workbook.LoadFromFile(excelPath);
-                Worksheet sheet = workbook.Worksheets[0];
-
+                string pdfPath = OpFile.FileName;
+                var wb = new XLWorkbook(pdfPath);
+                var ws = wb.Worksheet(1);
+               
+                // Define a range with the data
+                var firstTableCell = ws.FirstCellUsed();
+                var lastTableCell = ws.LastCellUsed();
+                var rngData = ws.Range(firstTableCell.Address, lastTableCell.Address);
+                var lastCellAddress = ws.LastCellUsed().Address;
+                
+                // Copy the table to another worksheet
+                //var wsCopy = wb.Worksheets.Add("Contacts Copy2");
+                var wsCopy = wb.Worksheet(2);
+                wsCopy.Style.Alignment = ws.Style.Alignment;
+                wsCopy.Style.Border = ws.Style.Border;
+                wsCopy.Style.Font = ws.Style.Font;
+                wsCopy.Style.Fill = ws.Style.Fill;
+                wsCopy.Style.NumberFormat = ws.Style.NumberFormat;
+                wsCopy.Cell(7, 1).Value = rngData;
+                //wsCopy.rows
+                wb.SaveAs("Copying123Ranges.xlsx", true);
             }
 
 
@@ -508,7 +739,14 @@ namespace WindowsFormsApplication1
 
         private void button10_Click(object sender, EventArgs e)
         {
-            Console.WriteLine(DateTimeUtil.GetTimeStamp());
+            //double rate = Convert.ToDouble(100) / Convert.ToDouble(105);
+            OpenFileDialog OpFile = new OpenFileDialog();
+            if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                String path = OpFile.FileName;
+                ExcelUtil.TestExcel(path);
+            }
+            //Console.WriteLine(rate);
 
         }
 
@@ -530,6 +768,22 @@ namespace WindowsFormsApplication1
                 listBox1.Items.Add(item);
             };
             this.BeginInvoke(ts);
+        }
+
+        private void button12_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog OpFile = new OpenFileDialog();
+
+            if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                string excelPath = OpFile.FileName;
+                ExcelUtil eu = new ExcelUtil();
+                List<IXLWorksheet> sheetList = eu.getExcelSheetList(excelPath);
+                string tempPath = Path.ChangeExtension(excelPath, "hello.xlsx");
+                eu.createExcelBySheetList(sheetList,tempPath, 1, 3);
+            }
+            
+
         }
     }
 }

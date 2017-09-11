@@ -50,7 +50,7 @@ namespace WindowsFormsApplication1
                     int pageIndex = 0;
                     foreach (LayoutObject page in layoutDoc)
                     {
-
+                        
                         RectangleF pageBounds = page.Bounds;
                         file.WriteLine("PAGE #{0} (Left={1} Right={2} Top={3} Bottom={4}):\n",
                             ++pageIndex, pageBounds.Left, pageBounds.Right, pageBounds.Top, pageBounds.Bottom);
@@ -74,12 +74,14 @@ namespace WindowsFormsApplication1
                                         tb.totalPage = layoutDoc.Count;
                                         tb.pageNumber = pageIndex;
                                         LayoutTable coll = obj as LayoutTable;
-                                        file.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},buttom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
+                                        file.WriteLine("Table [ID={0}] (left:{1},right:{2},top:{3},bottom:{4})", coll.GetID(), coll.Bounds.Left, coll.Bounds.Right
                                             , coll.Bounds.Top, coll.Bounds.Bottom);
                                         tb.left = coll.Bounds.Left;
                                         tb.right = coll.Bounds.Right;
                                         tb.top = coll.Bounds.Top;
                                         tb.bottom = coll.Bounds.Bottom;
+                                        tb.content_id = coll.GetID();
+                                        tb.content_type = (int)LayoutObjectType.Table;
                                         tbList.Add(tb);
 
                                         file.WriteLine(String.Empty);
@@ -118,10 +120,20 @@ namespace WindowsFormsApplication1
                                         string parText = par.AllText;
                                         if (0 != parText.Length)
                                         {
+                                            TableEntity tb = new TableEntity();  //table实体
                                             RectangleF bounds = par.Bounds;
                                             file.WriteLine("Paragraph [ID={4}] (Left={0} Right={1} Top={2} Bottom={3}):\n" + parText,
                                                 bounds.Left, bounds.Right, bounds.Top, bounds.Bottom, par.GetID());
                                             file.WriteLine(String.Empty);
+                                            tb.left = bounds.Left;
+                                            tb.right = bounds.Right;
+                                            tb.top = bounds.Top;
+                                            tb.bottom = bounds.Bottom;
+                                            tb.pageNumber = pageIndex;
+                                            tb.content_id = par.GetID();
+                                            tb.content_type = (int)LayoutObjectType.Paragraph;
+                                            tb.content = parText;
+                                            tbList.Add(tb);
                                         }
                                     }
                                     break;

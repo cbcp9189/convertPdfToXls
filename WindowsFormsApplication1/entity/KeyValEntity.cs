@@ -8,7 +8,7 @@ namespace WindowsFormsApplication1.entity
 {
     public class KeyValEntity
     {
-        public string key { get; set; }
+        public string key { get; set; }     
         public string value { get; set; }
         public string desc { get; set; }
 

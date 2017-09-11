@@ -36,7 +36,7 @@ namespace WindowsFormsApplication1
             }
         }
 
-        public void pdfConvertExcel(String path)
+        public static String pdfConvertExcel(String path)
         {
             Console.WriteLine(".................start");
             SolidFramework.License.Import(@"d:\User\license.xml");
@@ -57,6 +57,7 @@ namespace WindowsFormsApplication1
                 //convert the file, calling it the same name but with a different extention , setting overwrite to true 
                 converter.ConvertTo(xlsFile, true);
                 Console.WriteLine(".................end");
+                return xlsFile;
             }
 
         }

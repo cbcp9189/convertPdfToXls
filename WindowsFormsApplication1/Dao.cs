@@ -55,7 +55,7 @@ namespace WindowsFormsApplication1
 
         public List<AnnouncementEntity> getAnnouncementList(long index, int count)
         {
-            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13 AND excel_flag = 0 and update_flag = 3 ");
+            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13 AND excel_flag = 0 and update_flag = 6  and pdf_path like '%/2016/02%' ");
             sql.Append(" limit ");
             sql.Append(index);
             sql.Append(",");
@@ -81,17 +81,18 @@ namespace WindowsFormsApplication1
         }
 
 
-        public void savePdfToExcelInfo(AnnouncementEntity aey, KeyValEntity kve,TableEntity tb)
+        public void savePdfToExcelInfo(AnnouncementEntity aey, TableEntity tb)
         {
+            String sortExcelPath = tb.excelPath.Replace("X:/excel/","");
 
-            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,version,content) VALUES(");
+            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,version,content,across_page,flag) VALUES(");
             sql.Append(aey.doc_id);
             sql.Append(", ");
             sql.Append(aey.doc_type);
             sql.Append(",");
             sql.Append(aey.id);
             sql.Append(",'");
-            sql.Append(kve.desc);
+            sql.Append(sortExcelPath);
             sql.Append("',");
             sql.Append(tb.pageNumber);
             sql.Append(",");
@@ -108,14 +109,18 @@ namespace WindowsFormsApplication1
             sql.Append(DateTimeUtil.GetTimeStamp());
             sql.Append(",");
             sql.Append(DateTimeUtil.GetTimeStampWithMs());
-             sql.Append(",");
-             sql.Append("@content");
+            sql.Append(",");
+            sql.Append("@content");
+            sql.Append(",");
+            sql.Append(tb.pages);
+            sql.Append(",");
+            sql.Append(tb.flag);
             sql.Append(")");
             //Console.WriteLine(sql.ToString());
             MySqlConnection con = getmysqlcon();
             con.Open();
             MySqlCommand mysqlcom = con.CreateCommand();
-            mysqlcom.Parameters.AddWithValue("@content", kve.value);
+            mysqlcom.Parameters.AddWithValue("@content", tb.content);
             mysqlcom.CommandText = sql.ToString();
             mysqlcom.ExecuteNonQuery();
             con.Close();
@@ -262,6 +267,43 @@ namespace WindowsFormsApplication1
             mysqlcom.CommandText = sql;
             mysqlcom.ExecuteNonQuery();
             con.Close();
+        }
+
+        public void ExecuteInsertSqlTran(List<string> SQLStringList)
+        {
+            using (MySqlConnection conn = getmysqlconlocal())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand();
+                cmd.Connection = conn;
+                MySqlTransaction tx = conn.BeginTransaction();
+                cmd.Transaction = tx;
+                try
+                {
+                    for (int n = 0; n < SQLStringList.Count; n++)
+                    {
+                        string strsql = SQLStringList[n].ToString();
+                        if (strsql.Trim().Length > 1)
+                        {
+                            cmd.CommandText = strsql;
+                            cmd.ExecuteNonQuery();
+                        }
+                        //后来加上的  
+                        if (n > 0 && (n % 200 == 0 || n == SQLStringList.Count - 1))
+                        {
+                            tx.Commit();
+                            tx = conn.BeginTransaction();
+                        }
+                    }
+                }
+                catch (System.Data.SqlClient.SqlException E)
+                {
+                    tx.Rollback();
+                    throw new Exception(E.Message);
+                }
+                conn.Close();
+            }
+
         }
     }
 }

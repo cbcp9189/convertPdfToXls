@@ -22,9 +22,11 @@ namespace WindowsFormsApplication1.constant
 
         public static String subscriptions = "subscriptions";
 
+        public static double RANGE = 0.05;
 
+        public static int ERROR = -1;
 
-
+        public static int SUCCESS = 1;
 
     }
 }
