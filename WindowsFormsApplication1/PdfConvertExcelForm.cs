@@ -23,10 +23,18 @@ namespace WindowsFormsApplication1
 {
     public partial class PdfConvertExcelForm : Form
     {
-        //set your source and output folders 
-        //static String sourceFolder = @"D:\process\source";
-        //static String outputFolder = @"D:\process\output";
-        //static String errorFolder = @"D:\process\error";
+        private List<JobOrder> orders = new List<JobOrder>();
+
+        private List<JobOrder> secondOrders = new List<JobOrder>();
+
+        private object locker = new object();
+
+        private int converterType = 5;
+        private ReconstructionMode reconstructionMode;
+
+        private SolidFramework.Services.JobProcessor processor;
+
+        private int processedCount;
         static String sourceFolder = @"X:/juyuan_data/";
         static String outputFolder = @"X:\excel\";
         static Boolean startFlag = true;
@@ -41,18 +49,22 @@ namespace WindowsFormsApplication1
         private void buttonChoose_Click(object sender, EventArgs e)
         {
             SolidFramework.License.Import(@"d:\User\license.xml");
-            buttonStart.Enabled = false;
+            
             buttonStop.Enabled = true;
             //获取数据
             long minId = dao.getMinId();
             long maxId = dao.getMaxId();
-            long jianju = (maxId - minId) / 15;
-            for (int a = 0; a < 15; a++)
+            long jianju = (maxId - minId) / 5;
+            for (int a = 0; a < 5; a++)
             {
                 long param1 = minId + (a * jianju);
                 long param2 = minId + (a + 1) * jianju;
-                ThreadPool.QueueUserWorkItem(handlePdf, param1 + "-" + param2);
-                startThreadAddItem(param1 + "-" + param2);
+                Task.Factory.StartNew(() =>
+                {
+                    startThreadAddItem(param1 + "-" + param2);
+                    handlePdf(param1 + "-" + param2);
+                   
+                });
             }
         }
 
@@ -64,23 +76,11 @@ namespace WindowsFormsApplication1
             List<AnnouncementEntity> articleList = dao.getPdfStreamList(minid, maxid, LIMIT);
             while (articleList != null && articleList.Count>0)
             {
-                int pageSize = 2;
-                int tatolPage = 1;
-                if (articleList.Count % 2 == 0)
+                foreach (AnnouncementEntity ae in articleList) 
                 {
-                    tatolPage = articleList.Count / 2;
-                }
-                else
-                {
-                    tatolPage = (articleList.Count / 2) + 1;
-                }
-                for (int i = 1; i <= tatolPage; i++)
-                {
-                    List<AnnouncementEntity> result = articleList.Skip(pageSize * (i - 1)).Take(pageSize).ToList();
-                    dealPdfConvertExcel(result);
+                    dealPdfConvertExcel(ae);
                 }
                 articleList = dao.getPdfStreamList(minid, maxid, LIMIT);
-                //startThreadAddItem(minid + "-" + (LIMIT));
             }
         }
 
@@ -93,181 +93,152 @@ namespace WindowsFormsApplication1
         private void buttonStop_Click(object sender, EventArgs e)
         {
             startFlag = false;
-            buttonStart.Enabled = true;
             buttonStop.Enabled = false;
         }
 
-        private void dealPdfConvertExcel(List<AnnouncementEntity> articleList)
+        private void dealPdfConvertExcel(AnnouncementEntity ae)
         {
-            using (JobProcessor processor = new JobProcessor())
-            {
                 try
                 {
-                    processor.KeepJobs = true;
-                    foreach (AnnouncementEntity ae in articleList)
+                    DateTime d1 = System.DateTime.Now;
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start convert....");
+                    String pdfPath = sourceFolder + ae.pdfPath.Replace("GSGGFWB/", "");
+                    //String pdfPath = ae.pdfPath.Replace("GSGGFWB/", "");
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), pdfPath);
+                    if (!File.Exists(pdfPath))
                     {
-                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start convert....");
-                        String pdfPath = sourceFolder + ae.pdfPath.Replace("GSGGFWB/", "");
-                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), pdfPath);
-                        //listBoxFiles.Items.Add(pdfPath);
-                        if (!File.Exists(pdfPath))
-                        {
-                            dao.updatePdfStreamInfo(ae, -17);
-                            continue;
-                        }
-                        startThreadAddItem(pdfPath);
-                        String excelpath = pdfPath.Replace("juyuan_data", "excel/GSGGFWB");
-                        excelpath = Path.ChangeExtension(excelpath, "xlsx");
-                        
-                        PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
-                        //Set the Source Path 
-                        jobEnvelope.SourcePath = pdfPath;
-                        jobEnvelope.CustomData = ae;
-                        jobEnvelope.SingleTable = 0;
-                        jobEnvelope.TablesFromContent = false;
-
-                        //Submit the Job 
-                        processor.SubmitJob(jobEnvelope);
+                        dao.updatePdfStreamInfo(ae, -17);
                     }
-                    // wait until the queue is empty and all jobs are processed 
-                    processor.WaitTillComplete();
-
-                    foreach (JobEnvelope processedJob in processor.ProcessedJobs)
+                    startThreadAddItem(pdfPath);
+                    String xlsFile = Path.ChangeExtension(pdfPath.Replace("juyuan_data", "excel/GSGGFWB"), "xlsx");
+                    SolidConvertUtil solidConvertUtil = new SolidConvertUtil();
+                    ConversionStatus result = solidConvertUtil.pdfConvertExcel(pdfPath, xlsFile);
+                    if (result == ConversionStatus.Success)
                     {
                         Boolean issaveSuccess = true;
-                        DateTime d1 = System.DateTime.Now;
-                        AnnouncementEntity announcement = (AnnouncementEntity)processedJob.CustomData;
-                        if ((processedJob.Status != SolidFramework.Services.Plumbing.JobStatus.Success) || (processedJob.OutputPaths.Count != 1))
+                        //生成成功
+                        if (File.Exists(xlsFile))
                         {
-                            startThreadAddItem(d1 + ":" + Path.GetFileName(processedJob.SourcePath) + " failed because " + processedJob.Message);
-                            //将pdf_stream表excel_flag标识改为 -1
-                            int result = (int)processedJob.Status;
-                            dao.updatePdfStreamInfo(announcement, -result);
-
-                        }
-                        else
-                        {   //生成成功
-                            String excelpath = processedJob.SourcePath.Replace("juyuan_data", "excel/GSGGFWB");
-                            String wordTemporaryPath = processedJob.OutputPaths[0];
-                            startThreadAddItem("temp file" + wordTemporaryPath);
-                            String outputExtension = Path.GetExtension(wordTemporaryPath);
-                            excelpath = Path.ChangeExtension(excelpath, outputExtension);
-                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "create temp path " + excelpath);
-                            startThreadAddItem("create temp path " + excelpath);
-                            if (File.Exists(wordTemporaryPath))
+                            startThreadAddItem("enter convert function...");
+                            FileUtil.createDir(Path.GetDirectoryName(xlsFile));
+                            String txtPath = Path.ChangeExtension(xlsFile, ".txt");
+                            List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
+                            if (tbPostionList == null || tbPostionList.Count == 0)
                             {
-                                startThreadAddItem("enter convert function ");
-                                FileUtil.createDir(Path.GetDirectoryName(excelpath));
-                                File.Copy(wordTemporaryPath, excelpath, true);
-
-                                String txtPath = Path.ChangeExtension(excelpath, ".txt");
-                                List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(processedJob.SourcePath, txtPath);
-                                if (tbPostionList == null || tbPostionList.Count == 0) 
+                                startThreadAddItem(d1 + ": update excel_flag :-10 " + ae.doc_id);
+                                dao.updatePdfStreamInfo(ae, -10);
+                                return;
+                            }
+                            startThreadAddItem("tbPostionList:" + tbPostionList.Count);
+                            //对txt中的table进行合并
+                            List<TableEntity> mergeTableList = mergeTable(tbPostionList);
+                            //获取多个sheet的文本
+                            ExcelUtil eu = new ExcelUtil();
+                            List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
+                            int index = 0;
+                            for (int i=0;i<mergeTableList.Count;i++)
+                            {
+                                TableEntity tableEntity = mergeTableList[i];
+                                if (tableEntity == null) 
                                 {
-                                    startThreadAddItem(d1 + " update excel_flag :-10 " + announcement.doc_id);
-                                    dao.updatePdfStreamInfo(announcement, -10);
+                                    continue;
+                                }
+                                int txtLen = tableEntity.content.Replace(" ", "").Replace("\n", "").Length; //txt生成的表格文本长度
+                                String excelTxt = eu.getExcelSheetText(sheetList[index]);
+                                int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
+                                String excelContent = excelTxt.Replace("\n", "");
+                                double rate = (double)txtLen / excelTxtLen;
+                                rate = Math.Round(rate, 3);
+                                string singleExcelPath = Path.ChangeExtension(xlsFile, index + ".xlsx");
+                                if (rate < (1 + SysConstant.RANGE) && rate > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                                {
+                                    //startThreadAddItem("succes:" + excelContent);
+                                    eu.createExcelBySheet(sheetList[index], singleExcelPath);
+                                    tableEntity.excelPath = singleExcelPath;
+                                    tableEntity.flag = SysConstant.SUCCESS;
+                                    tableEntity.content = excelContent;
+                                    //resultList.Add(tableEntity);
+                                }
+                                else if (rate <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                                {
+                                    //报错
+                                    tableEntity.flag = SysConstant.ERROR;
+                                    tableEntity.excelPath = "";
                                     break;
                                 }
-                                startThreadAddItem("tbPostionList:" + tbPostionList.Count);
-                                //对txt中的table进行合并
-                                List<TableEntity> mergeTableList = mergeTable(tbPostionList);
-                                //获取多个sheet的文本
-                                ExcelUtil eu = new ExcelUtil();
-                                List<IXLWorksheet> sheetList = eu.getExcelSheetList(excelpath);
-                                int index = 0;
-                                foreach (TableEntity tableEntity in mergeTableList)
+                                else if (rate >= (1 + SysConstant.RANGE))  //文本长度比例大于等于105%
                                 {
-                                    int txtLen = tableEntity.content.Replace(" ", "").Replace("\n", "").Length; //txt生成的表格文本长度
-                                    String excelTxt = eu.getExcelSheetText(sheetList[index]);
-                                    int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
-                                    String excelContent = excelTxt.Replace("\n", "");
-                                    double rate = (double)txtLen / excelTxtLen;
-                                    rate = Math.Round(rate, 3);
-                                    string singleExcelPath = Path.ChangeExtension(excelpath, index + ".xlsx");
-                                    if (rate < (1 + SysConstant.RANGE) && rate > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                                    int totalLen = excelTxtLen;
+                                    int initIndex = index;
+                                    Boolean isError = false;
+                                    while (true)
                                     {
-                                        //startThreadAddItem("succes:" + excelContent);
-                                        eu.createExcelBySheet(sheetList[index], singleExcelPath);
-                                        tableEntity.excelPath = singleExcelPath;
-                                        tableEntity.flag = SysConstant.SUCCESS;
-                                        tableEntity.content = excelContent;
-                                        //resultList.Add(tableEntity);
-                                    }
-                                    else if (rate <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
-                                    {
-                                        //报错
-                                        tableEntity.flag = SysConstant.ERROR;
-                                        tableEntity.excelPath = "";
-                                        break;
-                                    }
-                                    else if (rate >= (1 + SysConstant.RANGE))  //文本长度比例大于等于105%
-                                    {
-                                        int totalLen = excelTxtLen;
-                                        int initIndex = index;
-                                        Boolean isError = false;
-                                        while (true)
+                                        //合并当前sheet跟下一个sheet
+                                        index++;
+                                        int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
+                                        excelContent += eu.getExcelSheetText(sheetList[index]).Replace("\n", "");
+                                        totalLen += secondSheetTxtLen;
+                                        double rate1 = (double)txtLen / totalLen;
+                                        rate1 = Math.Round(rate1, 3);
+                                        if (rate1 < (1 + SysConstant.RANGE) && rate1 > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
                                         {
-                                            //合并当前sheet跟下一个sheet
-                                            index++;
-                                            int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
-                                            excelContent += eu.getExcelSheetText(sheetList[index]).Replace("\n", "");
-                                            totalLen += secondSheetTxtLen;
-                                            double rate1 = (double)txtLen / totalLen;
-                                            rate1 = Math.Round(rate1, 3);
-                                            if (rate1 < (1 + SysConstant.RANGE) && rate1 > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
-                                            {
-                                                //合并excel
-                                                eu.createExcelBySheetList(sheetList, singleExcelPath, initIndex, index);
-                                                tableEntity.flag = SysConstant.SUCCESS;
-                                                tableEntity.excelPath = singleExcelPath;
-                                                tableEntity.content = excelContent;
-                                                break;
-                                            }
-                                            else if (rate1 <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
-                                            {
-                                                //报错
-                                                tableEntity.flag = SysConstant.ERROR;
-                                                tableEntity.excelPath = "";
-                                                isError = true;
-                                                break;
-                                            }
+                                            //合并excel
+                                            eu.createExcelBySheetList(sheetList, singleExcelPath, initIndex, index);
+                                            tableEntity.flag = SysConstant.SUCCESS;
+                                            tableEntity.excelPath = singleExcelPath;
+                                            tableEntity.content = excelContent;
+                                            break;
                                         }
-                                        if (isError)
+                                        else if (rate1 <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
                                         {
+                                            //报错
+                                            tableEntity.flag = SysConstant.ERROR;
+                                            tableEntity.excelPath = "";
+                                            isError = true;
                                             break;
                                         }
                                     }
-                                    index++;
-                                }
-                                foreach (TableEntity tableEntity in mergeTableList)
-                                {
-                                    if (tableEntity.flag == SysConstant.ERROR)
+                                    if (isError)
                                     {
-                                        issaveSuccess = false;
+                                        break;
                                     }
-                                    dao.savePdfToExcelInfo(announcement, tableEntity);
                                 }
-                                if (issaveSuccess)
+                                index++;
+                            }
+                            foreach (TableEntity tableEntity in mergeTableList)
+                            {
+                                if (tableEntity.flag == SysConstant.ERROR)
                                 {
-                                    startThreadAddItem(d1 + " update excel_flag :1 " + announcement.doc_id);
-                                    dao.updatePdfStreamInfo(announcement, 1);
+                                    issaveSuccess = false;
                                 }
-                                else
-                                {
-                                    startThreadAddItem(d1 + " update excel_flag :-10 " + announcement.doc_id);
-                                    dao.updatePdfStreamInfo(announcement, -10);
-                                }
+                                //dao.savePdfToExcelInfo(ae, tableEntity);
+                            }
+                            if (issaveSuccess)
+                            {
+                                startThreadAddItem(d1 + " update excel_flag :1 " + ae.doc_id);
+                                dao.updatePdfStreamInfo(ae, 1);
+                            }
+                            else
+                            {
+                                startThreadAddItem(d1 + " update excel_flag :-10 " + ae.doc_id);
+                                dao.updatePdfStreamInfo(ae, -10);
                             }
                         }
                     }
+                    else 
+                    {
+                        startThreadAddItem(Path.GetFileName(pdfPath) + " failed ");
+                        //将pdf_stream表excel_flag标识改为 -1
+                        dao.updatePdfStreamInfo(ae, -(int)result);
+                    }
+                   
                 }
                 catch (Exception ex)
                 {
-                    startThreadAddItem(ex.Message);
+                    startThreadAddItem(ex.GetBaseException().Message);
                     LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
                 }
                 //结束生成
-            }
         }
 
         //分析表格是否需要合并
@@ -420,9 +391,7 @@ namespace WindowsFormsApplication1
             String path = "W:\\juyuan_data\\2017\\02\\hello.pdf";
             String savePath = path.Substring(path.IndexOf("02"));
             Console.WriteLine(savePath);
-            listBoxFiles.Items.Add(savePath);
-            String sd = DateTime.Now.Date.ToShortDateString();
-            listBoxFiles.Items.Add(DateTime.Now.ToString());
+            
         }
 
         private void button1_Click_1(object sender, EventArgs e)
@@ -441,7 +410,7 @@ namespace WindowsFormsApplication1
         {
             ThreadStart ts = delegate
             {
-                listBoxFiles.Items.Add(item);
+                //listBoxFiles.Items.Add(item);
             };
             this.BeginInvoke(ts);
         }
@@ -456,7 +425,7 @@ namespace WindowsFormsApplication1
         {
             ThreadStart ts = delegate
             {
-                listBoxFiles.Items.Clear();
+                //listBoxFiles.Items.Clear();
             };
             this.BeginInvoke(ts);
         }
@@ -469,15 +438,457 @@ namespace WindowsFormsApplication1
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 String pdfPath = OpFile.FileName;
-                List<AnnouncementEntity> announceList = new List<AnnouncementEntity>();
                 AnnouncementEntity ae = new AnnouncementEntity();
                 ae.pdfPath = pdfPath;
-                announceList.Add(ae);
-                dealPdfConvertExcel(announceList);
+                dealPdfConvertExcel(ae);
 
             }
+        }
+        protected void convertExcel()
+        {
+            try
+            {
+                // Create jobs for each file and hand them to the job processor.
+                foreach (JobOrder order in orders)
+                {
+                    PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
+                    job5.DoProgress = true;
+                    job5.SourcePath = PathUtil.getAbsolutePdfPath(order.Filename,order.stream.doc_type);
+                    job5.Password = order.Password;
+                    job5.CustomData = order.stream;
+                    ListViewItem item5 = listView1.Items.Add(new ListViewItem(Path.GetFileName(job5.SourcePath)));
+                    item5.Name = Path.GetFileName(job5.SourcePath);
+                    item5.SubItems.Add("0");
+                    item5.SubItems.Add("Queued");
+                    //item5.SubItems.Add = job5.SourcePath;
+                    job5.TablesFromContent = false;
+                    job5.SingleTable = 0;
+                    processor.SubmitJob(job5);
+                }
+                
+            }
+            catch (System.Exception ex)
+            {
+                string strMessage = string.Empty;
+                if (ex.Message.Contains("correct license"))
+                {
+                    strMessage = "Please enter valid unlock information in About.";
+                }
+                else
+                {
+                    strMessage = ex.Message;
+                }
 
+                SolidFramework.Forms.SolidMessageBox messageDialog = new SolidFramework.Forms.SolidMessageBox(this);
+                messageDialog.Content = strMessage;
+                messageDialog.Text = "Error";
+                messageDialog.MessageIcon = MessageBoxIcon.Error;
+                messageDialog.Buttons = MessageBoxButtons.OK;
+                messageDialog.ShowIcon = true;
+                messageDialog.Execute();
+
+                this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+                processor.JobProgressEvent -= processor_JobProgressEvent;
+                processor.JobCompletedEvent -= processor_JobCompletedEvent;
+                processor.Close();
+                processor.Dispose();
+                this.Close();
+            }
+        }
+
+        void processor_JobCompletedEvent(object sender, SolidFramework.Services.JobCompletedEventArgs e)
+        {
+            Invoke(new Action(() => this.UpdateCompletedStatus(e)));
+
+            processedCount++;
+            PdfStream steam = (PdfStream)e.JobEnvelope.CustomData;
+            if (e.JobEnvelope.Status == JobStatus.Success)
+            {
+                try
+                {
+
+                    if (e.JobEnvelope.GetType() == typeof(PdfToExcelJobEnvelope))
+                    {
+
+                        string convertedTemp = e.JobEnvelope.OutputPaths[0];
+                        string pdfPath = e.JobEnvelope.SourcePath;
+                        string ext = Path.GetExtension(convertedTemp);
+                        string xlsFile = PathUtil.getAbsolutExcelPath(steam.pdf_path, steam.doc_type);
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "xlsFile:" + xlsFile);
+                        SolidFramework.Plumbing.Utilities.FileCopy(convertedTemp, xlsFile, true);
+                        Boolean issaveSuccess = true;
+                        //生成成功
+                        if (File.Exists(xlsFile))
+                        {
+                            FileUtil.createDir(Path.GetDirectoryName(xlsFile));
+                            String txtPath = Path.ChangeExtension(xlsFile, ".txt");
+                            List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
+                            if (tbPostionList == null || tbPostionList.Count == 0)
+                            {
+                                steam.excel_flag = -10;
+                                updatePdfStream(steam);
+                                return;
+                            }
+                            //对txt中的table进行合并
+                            List<TableEntity> mergeTableList = mergeTable(tbPostionList);
+                            //获取多个sheet的文本
+                            ExcelUtil eu = new ExcelUtil();
+                            List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
+                            int index = 0;
+                            for (int i = 0; i < mergeTableList.Count; i++)
+                            {
+                                TableEntity tableEntity = mergeTableList[i];
+                                if (tableEntity == null)
+                                {
+                                    continue;
+                                }
+                                int txtLen = tableEntity.content.Replace(" ", "").Replace("\n", "").Length; //txt生成的表格文本长度
+                                String excelTxt = "";
+                                if (index < sheetList.Count)
+                                {
+                                    excelTxt = eu.getExcelSheetText(sheetList[index]);
+                                }
+                                else 
+                                {
+                                    //报错
+                                    tableEntity.flag = SysConstant.ERROR;
+                                    tableEntity.excelPath = "";
+                                    break;
+                                }
+                                int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
+                                String excelContent = excelTxt.Replace("\n", "");
+                                double rate = (double)txtLen / excelTxtLen;
+                                rate = Math.Round(rate, 3);
+                                string singleExcelPath = Path.ChangeExtension(xlsFile, index + ".xlsx");
+                                if (rate < (1 + SysConstant.RANGE) && rate > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                                {
+                                    eu.createExcelBySheet(sheetList[index], singleExcelPath);
+                                    tableEntity.excelPath = singleExcelPath;
+                                    tableEntity.flag = SysConstant.SUCCESS;
+                                    tableEntity.content = excelContent;
+                                }
+                                else if (rate <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                                {
+                                    //报错
+                                    tableEntity.flag = SysConstant.ERROR;
+                                    tableEntity.excelPath = "";
+                                    break;
+                                }
+                                else if (rate >= (1 + SysConstant.RANGE))  //文本长度比例大于等于105%
+                                {
+                                    int totalLen = excelTxtLen;
+                                    int initIndex = index;
+                                    Boolean isError = false;
+                                    while (true)
+                                    {
+                                        //合并当前sheet跟下一个sheet
+                                        index++;
+                                        if (index < sheetList.Count)
+                                        {
+                                            excelTxt = eu.getExcelSheetText(sheetList[index]);
+                                        }
+                                        else
+                                        {
+                                            //报错
+                                            tableEntity.flag = SysConstant.ERROR;
+                                            tableEntity.excelPath = "";
+                                            isError = true;
+                                            break;
+                                        }
+                                        int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
+                                        excelContent += eu.getExcelSheetText(sheetList[index]).Replace("\n", "");
+                                        totalLen += secondSheetTxtLen;
+                                        double rate1 = (double)txtLen / totalLen;
+                                        rate1 = Math.Round(rate1, 3);
+                                        if (rate1 < (1 + SysConstant.RANGE) && rate1 > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                                        {
+                                            //合并excel
+                                            eu.createExcelBySheetList(sheetList, singleExcelPath, initIndex, index);
+                                            tableEntity.flag = SysConstant.SUCCESS;
+                                            tableEntity.excelPath = singleExcelPath;
+                                            tableEntity.content = excelContent;
+                                            break;
+                                        }
+                                        else if (rate1 <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                                        {
+                                            //报错
+                                            tableEntity.flag = SysConstant.ERROR;
+                                            tableEntity.excelPath = "";
+                                            isError = true;
+                                            break;
+                                        }
+                                    }
+                                    if (isError)
+                                    {
+                                        break;
+                                    }
+                                }
+                                index++;
+                            }
+                            foreach (TableEntity tableEntity in mergeTableList)
+                            {
+                                if (tableEntity.flag == SysConstant.ERROR)
+                                {
+                                    issaveSuccess = false;
+                                    break;
+                                }
+                            }
+                            if (issaveSuccess)
+                            {
+                                foreach (TableEntity tableEntity in mergeTableList)
+                                {
+                                    dao.savePdfToExcelInfo(steam, tableEntity);
+                                }
+                                steam.excel_flag = 1;
+                                updatePdfStream(steam);
+                            }
+                            else
+                            {
+                                //dao.updatePdfStreamInfo(ae, -10);
+                                steam.excel_flag = -10;
+                                updatePdfStream(steam);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //将pdf_stream表excel_flag标识改为 -1
+                        //dao.updatePdfStreamInfo(ae, -(int)result);
+                        steam.excel_flag = -1;
+                        updatePdfStream(steam);
+                    }
+                }
+                catch (Exception ex) {
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "error-"+ex.GetBaseException().Message);
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
+                }
+            }
+            else { //解析失败
+                //将pdf_stream表excel_flag标识改为 -1
+                steam.excel_flag = -(int)e.JobEnvelope.Status;
+                updatePdfStream(steam);
+            }
+
+            //当完成时,在列队里加入一个任务
+            //addConvertJob();
 
         }
+        public void addConvertJob() {
+            lock (locker) {
+                if (secondOrders == null || secondOrders.Count() == 0)
+                {
+                    //获取pdfstream信息
+                    PdfData pdfData = HttpUtil.getPdfStreamData();
+                    if (pdfData != null)
+                    {
+                        foreach (PdfStream stream in pdfData.data)
+                        {
+                            JobOrder order = new JobOrder();
+                            order.Filename = stream.pdf_path;
+                            order.stream = stream;
+                            secondOrders.Add(order);
+                        }
+                        if (secondOrders.Count > 0)
+                        {
+                            JobOrder tempOrder = secondOrders[0];
+                            PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
+                            job5.DoProgress = true;
+                            job5.SourcePath = PathUtil.getAbsolutePdfPath(tempOrder.Filename, tempOrder.stream.doc_type);
+                            job5.Password = tempOrder.Password;
+                            job5.CustomData = tempOrder.stream;
+                            ListViewItem item5 = listView1.Items.Add(new ListViewItem(Path.GetFileName(job5.SourcePath)));
+                            item5.Name = Path.GetFileName(job5.SourcePath);
+                            item5.SubItems.Add("0");
+                            item5.SubItems.Add("Queued...");
+                            //item5.SubItems.Add = job5.SourcePath;
+                            job5.TablesFromContent = false;
+                            job5.SingleTable = 0;
+                            processor.SubmitJob(job5);
+                            secondOrders.RemoveAt(0);
+                        }
+                    }
+                }
+                else
+                {
+                    JobOrder order = secondOrders[0];
+                    PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
+                    job5.DoProgress = true;
+                    job5.SourcePath = PathUtil.getAbsolutePdfPath(order.Filename, order.stream.doc_type);
+                    job5.Password = order.Password;
+                    job5.CustomData = order.stream;
+                    ListViewItem item5 = listView1.Items.Add(new ListViewItem(Path.GetFileName(job5.SourcePath)));
+                    item5.Name = Path.GetFileName(job5.SourcePath);
+                    item5.SubItems.Add("0");
+                    item5.SubItems.Add("Queued...");
+                    //item5.SubItems.Add = job5.SourcePath;
+                    job5.TablesFromContent = false;
+                    job5.SingleTable = 0;
+                    processor.SubmitJob(job5);
+                    secondOrders.RemoveAt(0);
+                }
+            }
+        }
+
+        void processor_JobProgressEvent(object sender, SolidFramework.Services.JobProgressEventArgs e)
+        {
+            Invoke(new Action(() => this.UpdateProgress(e)));
+        }
+
+        private void UpdateProgress(SolidFramework.Services.JobProgressEventArgs e)
+        {
+            
+            ListViewItem[] items = listView1.Items.Find(Path.GetFileName(e.JobEnvelope.SourcePath), false);
+            if (items.Count() > 0)
+            {
+                int row = items[0].Index;
+
+                //ProgressBar pb = listView1.GetEmbeddedControl(1, row) as ProgressBar;
+                //pb.Value = e.Position;
+                
+                ListViewItem item = listView1.Items[row];
+                item.SubItems[1].Text = e.Position+"%";
+                if (item.SubItems[2].Text != "Processing")
+                {
+                    item.SubItems[2].Text = "Processing";
+                }
+            }
+        }
+
+        private void UpdateCompletedStatus(SolidFramework.Services.JobCompletedEventArgs e)
+        {
+            ListViewItem[] items = listView1.Items.Find(Path.GetFileName(e.JobEnvelope.SourcePath), false);
+            if (items.Count() > 0)
+            {
+                int row = items[0].Index;
+
+                ListViewItem item = listView1.Items[row];
+                //ProgressBar pb = listView1.GetEmbeddedControl(1, row) as ProgressBar;
+                if (e.JobEnvelope.Status != JobStatus.Started && e.JobEnvelope.Status != JobStatus.Success)
+                {
+                    item.SubItems[1].Text = "100%";
+                }
+
+                item.SubItems[2].Text = GetStatusString(e.JobEnvelope.Status);
+            }
+        }
+
+        private string GetStatusString(JobStatus status)
+        {
+            string message = string.Empty;
+            switch (status)
+            {
+                case JobStatus.BadData:
+                case JobStatus.BadDataFailure:
+                    message = "Bad Data";
+                    break;
+                case JobStatus.Cancelled:
+                    message = "Cancelled";
+                    break;
+                case JobStatus.Created:
+                    message = "Created";
+                    break;
+                case JobStatus.Failure:
+                    message = "Failed";
+                    break;
+                case JobStatus.InternalErrorFailure:
+                case JobStatus.InternalError:
+                    message = "Internal Error";
+                    break;
+                case JobStatus.InvalidPassword:
+                case JobStatus.InvalidPasswordFailure:
+                    message = "Password Failure";
+                    break;
+                case JobStatus.NoImages:
+                case JobStatus.NoImagesFailure:
+                    message = "No Images";
+                    break;
+                case JobStatus.NoTables:
+                case JobStatus.NoTablesFailure:
+                    message = "No Tables";
+                    break;
+                case JobStatus.NoTagged:
+                case JobStatus.NoTaggedFailure:
+                    message = "No Tagging";
+                    break;
+                case JobStatus.NotPdfA:
+                case JobStatus.NotPdfAFailure:
+                    message = "Not PDF/A";
+                    break;
+                case JobStatus.TimedOut:
+                case JobStatus.TimedOutFailure:
+                    message = "Timed Out";
+                    break;
+                case JobStatus.Success:
+                    message = "Success";
+                    break;
+                case JobStatus.Started:
+                    message = "Started";
+                    break;
+                default:
+                    message = "Unknown Error";
+                    break;
+            }
+
+            return message;
+        }
+
+        public void initData(int convertType,List<PdfStream> pdfStreamList)
+        {
+            foreach(PdfStream stream in pdfStreamList){
+                JobOrder order = new JobOrder();
+                order.Filename = stream.pdf_path;
+                order.stream = stream;
+                orders.Add(order);
+            }
+            converterType = convertType;
+            reconstructionMode = ReconstructionMode.Flowing;
+
+            // Setup the Solid Framework Job Processor.
+            processor = new SolidFramework.Services.JobProcessor();
+
+            // We will allow the job processor process to run as 64 bit on X64 OS
+            // even it application is 32 bit. This allows faster processing, and we
+            // have access to more memory.
+            processor.Allow64on32 = false;
+
+            processor.JobProgressEvent += processor_JobProgressEvent;
+            processor.JobCompletedEvent += processor_JobCompletedEvent;
+
+            processedCount = 0;
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            SolidFramework.License.Import(@"d:\User\license.xml");
+            int type = 5;
+            
+            while (true)
+            {
+                PdfData pdfData = HttpUtil.getPdfStreamData();
+                if (pdfData != null)
+                {
+                    initData(type, pdfData.data);
+                    convertExcel();
+                    processor.WaitTillComplete();
+                    processor.JobProgressEvent -= processor_JobProgressEvent;
+                    processor.JobCompletedEvent -= processor_JobCompletedEvent;
+                    processor.Close();
+                    processor.Dispose();
+                    listView1.Items.Clear();
+                    orders.Clear();
+                }
+                else {
+                    Thread.Sleep(3000);
+                }
+            }
+        }
+
+        public void updatePdfStream(PdfStream stream) 
+        {
+            List<PdfStream> pdfdata = new List<PdfStream>();
+            pdfdata.Add(stream);
+            HttpUtil.updatePdfStreamData(pdfdata);
+        }
+        
     }
 }
