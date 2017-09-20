@@ -242,6 +242,122 @@ namespace WindowsFormsApplication1
         }
 
         //分析表格是否需要合并
+        public List<TxtEntity> getParagraph(List<TableEntity> tbPostionList, long docid, int doctype)
+        {
+            List<TxtEntity> paragraphList = new List<TxtEntity>();
+            TableEntity tableObj = null;
+            int currentPage = 1;
+            foreach (TableEntity te in tbPostionList)
+            {
+                if (te.pageNumber == currentPage)
+                {
+                    if (te.content_type == 2 )  //类型等于table时 
+                    {
+                        if (tableObj == null)
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid,doctype,false,2));
+                            tableObj = te;
+                            continue;
+                        }
+                        else 
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, false, 2));
+                            tableObj = te;
+                            continue;
+                        }
+
+                    }
+                    else if (te.content_type != 2)  //等于段落
+                    {
+                        if (tableObj == null)  //忽略
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, false, 1));
+                            continue;
+                        }
+                        else if (tableObj.bottom > te.bottom)
+                        {
+                            
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, true, 1));
+                            tableObj.content += te.content;
+                            continue;
+                        }
+                        else if (tableObj.bottom < te.bottom)
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, true, 1));
+                            tableObj = null;
+                            continue;
+                        }
+                    }
+                }
+                else   //不等于当前页
+                {
+                    currentPage = te.pageNumber;
+
+                    if (te.content_type == 2) 
+                    {
+                        if (tableObj == null) //说明是新表
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, false, 2));
+                            tableObj = te;
+                            continue;
+                        }
+                        else
+                        {
+                            
+                            //合并的逻辑
+                            tableObj.bottom = te.bottom;
+                            tableObj.right = te.right;
+                            tableObj.pages++;
+                            continue;
+                        }
+                        
+                    }
+                    else if (te.content_type != 2)
+                    {
+
+                        if (tableObj == null)  //忽略
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, false, 1));
+                            continue;
+                        }
+                        else
+                        {
+                            paragraphList.Add(getTxtEntity(te, docid, doctype, true, 1));
+                            tableObj = null;
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            return paragraphList;
+        }
+
+        public TxtEntity getTxtEntity(TableEntity te, long docid, int doctype, Boolean is_tb_content,int type)
+        { 
+        TxtEntity txt = new TxtEntity();
+            txt.docid = docid;
+            txt.doctype = doctype;
+            txt.content = te.content;
+            txt.top = te.top;
+            txt.left = te.left;
+            txt.right = te.right;
+            txt.bottom = te.bottom;
+            txt.content_id = te.content_id;
+            if (is_tb_content)
+            {
+                txt.is_tb_content = 1;
+            }
+            else {
+                txt.is_tb_content = 0;
+            }
+            
+            txt.pageNumber = te.pageNumber;
+            txt.type = type;
+            return txt;
+        }
+
+        //分析表格是否需要合并
         public List<TableEntity> mergeTable(List<TableEntity> tbPostionList)
         {
             List<TableEntity> mergeTableList = new List<TableEntity>();
@@ -259,7 +375,7 @@ namespace WindowsFormsApplication1
                             tableObj = te;
                             continue;
                         }
-                        else 
+                        else
                         {
                             mergeTableList.Add(tableObj);
                             tableObj = te;
@@ -290,12 +406,12 @@ namespace WindowsFormsApplication1
                 {
                     currentPage = te.pageNumber;
 
-                    if (te.content_type == 2) 
+                    if (te.content_type == 2)
                     {
-                       
+
                         if (tableObj == null) //说明是新表
                         {
-                           
+
                             tableObj = te;
                             continue;
                         }
@@ -307,7 +423,7 @@ namespace WindowsFormsApplication1
                             tableObj.pages++;
                             continue;
                         }
-                        
+
                     }
                     else if (te.content_type != 2)
                     {
@@ -325,14 +441,14 @@ namespace WindowsFormsApplication1
                     }
                 }
             }
-            if (tableObj != null) 
+            if (tableObj != null)
             {
                 mergeTableList.Add(tableObj);
             }
-            
+
             return mergeTableList;
         }
-        
+
         //分析表格是否需要合并
         public void mergeTabledemo(List<TableEntity> tbPostionList) 
         {
@@ -438,9 +554,10 @@ namespace WindowsFormsApplication1
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 String pdfPath = OpFile.FileName;
-                AnnouncementEntity ae = new AnnouncementEntity();
-                ae.pdfPath = pdfPath;
-                dealPdfConvertExcel(ae);
+                int type = 5;
+                initData(type, pdfData.data);
+                convertExcel();
+                processor.WaitTillComplete();
 
             }
         }
@@ -506,10 +623,6 @@ namespace WindowsFormsApplication1
             {
                 try
                 {
-
-                    if (e.JobEnvelope.GetType() == typeof(PdfToExcelJobEnvelope))
-                    {
-
                         string convertedTemp = e.JobEnvelope.OutputPaths[0];
                         string pdfPath = e.JobEnvelope.SourcePath;
                         string ext = Path.GetExtension(convertedTemp);
@@ -531,6 +644,8 @@ namespace WindowsFormsApplication1
                             }
                             //对txt中的table进行合并
                             List<TableEntity> mergeTableList = mergeTable(tbPostionList);
+                            //将txt中的列提取出来
+                            List<TxtEntity> paragraphList = getParagraph(tbPostionList, steam.doc_id, steam.doc_type);
                             //获取多个sheet的文本
                             ExcelUtil eu = new ExcelUtil();
                             List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
@@ -641,22 +756,26 @@ namespace WindowsFormsApplication1
                                 }
                                 steam.excel_flag = 1;
                                 updatePdfStream(steam);
+                                foreach (TxtEntity txt in paragraphList)
+                                {
+                                    dao.savePdfTxtInfo(txt);
+                                }
+
                             }
                             else
                             {
                                 //dao.updatePdfStreamInfo(ae, -10);
-                                steam.excel_flag = -10;
+                                steam.excel_flag = -10;  //对比错误
                                 updatePdfStream(steam);
                             }
                         }
-                    }
-                    else
-                    {
-                        //将pdf_stream表excel_flag标识改为 -1
-                        //dao.updatePdfStreamInfo(ae, -(int)result);
-                        steam.excel_flag = -1;
-                        updatePdfStream(steam);
-                    }
+                        else
+                        {
+                            steam.excel_flag = -11;  //文件未找到
+                            updatePdfStream(steam);
+                        }
+                       
+                    
                 }
                 catch (Exception ex) {
                     LogHelper.WriteLog(typeof(PdfConvertExcelForm), "error-"+ex.GetBaseException().Message);
@@ -674,59 +793,24 @@ namespace WindowsFormsApplication1
 
         }
         public void addConvertJob() {
-            lock (locker) {
-                if (secondOrders == null || secondOrders.Count() == 0)
-                {
-                    //获取pdfstream信息
-                    PdfData pdfData = HttpUtil.getPdfStreamData();
-                    if (pdfData != null)
-                    {
-                        foreach (PdfStream stream in pdfData.data)
-                        {
-                            JobOrder order = new JobOrder();
-                            order.Filename = stream.pdf_path;
-                            order.stream = stream;
-                            secondOrders.Add(order);
-                        }
-                        if (secondOrders.Count > 0)
-                        {
-                            JobOrder tempOrder = secondOrders[0];
-                            PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
-                            job5.DoProgress = true;
-                            job5.SourcePath = PathUtil.getAbsolutePdfPath(tempOrder.Filename, tempOrder.stream.doc_type);
-                            job5.Password = tempOrder.Password;
-                            job5.CustomData = tempOrder.stream;
-                            ListViewItem item5 = listView1.Items.Add(new ListViewItem(Path.GetFileName(job5.SourcePath)));
-                            item5.Name = Path.GetFileName(job5.SourcePath);
-                            item5.SubItems.Add("0");
-                            item5.SubItems.Add("Queued...");
-                            //item5.SubItems.Add = job5.SourcePath;
-                            job5.TablesFromContent = false;
-                            job5.SingleTable = 0;
-                            processor.SubmitJob(job5);
-                            secondOrders.RemoveAt(0);
-                        }
-                    }
-                }
-                else
-                {
-                    JobOrder order = secondOrders[0];
-                    PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
-                    job5.DoProgress = true;
-                    job5.SourcePath = PathUtil.getAbsolutePdfPath(order.Filename, order.stream.doc_type);
-                    job5.Password = order.Password;
-                    job5.CustomData = order.stream;
-                    ListViewItem item5 = listView1.Items.Add(new ListViewItem(Path.GetFileName(job5.SourcePath)));
-                    item5.Name = Path.GetFileName(job5.SourcePath);
-                    item5.SubItems.Add("0");
-                    item5.SubItems.Add("Queued...");
-                    //item5.SubItems.Add = job5.SourcePath;
-                    job5.TablesFromContent = false;
-                    job5.SingleTable = 0;
-                    processor.SubmitJob(job5);
-                    secondOrders.RemoveAt(0);
-                }
+            PdfData pdfdata = HttpUtil.getPdfStreamDataByLimit(1);
+            if (pdfdata != null && pdfdata.data != null &&pdfdata.data.Count > 0)
+            {
+                PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
+                job5.DoProgress = true;
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), "add convertJob..." + pdfdata.data[0].pdf_path);
+                job5.SourcePath = PathUtil.getAbsolutePdfPath(pdfdata.data[0].pdf_path, pdfdata.data[0].doc_type);
+                job5.Password = "";
+                job5.CustomData = pdfdata.data[0];
+                ListViewItem item5 = listView1.Items.Add(new ListViewItem(Path.GetFileName(job5.SourcePath)));
+                item5.Name = Path.GetFileName(job5.SourcePath);
+                item5.SubItems.Add("0");
+                item5.SubItems.Add("Queued...");
+                job5.TablesFromContent = false;
+                job5.SingleTable = 0;
+                processor.SubmitJob(job5);
             }
+            
         }
 
         void processor_JobProgressEvent(object sender, SolidFramework.Services.JobProgressEventArgs e)
@@ -859,14 +943,15 @@ namespace WindowsFormsApplication1
 
         private void button3_Click(object sender, EventArgs e)
         {
-            SolidFramework.License.Import(@"d:\User\license.xml");
+            SolidFramework.License.Import(@"c:\User\license.xml");
             int type = 5;
             
             while (true)
             {
-                PdfData pdfData = HttpUtil.getPdfStreamData();
-                if (pdfData != null)
+                PdfData pdfData = HttpUtil.getPdfStreamDataByLimit(30);
+                if (pdfData != null && pdfData.data != null && pdfData.data.Count >0 )
                 {
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start next convert");
                     initData(type, pdfData.data);
                     convertExcel();
                     processor.WaitTillComplete();
@@ -876,8 +961,10 @@ namespace WindowsFormsApplication1
                     processor.Dispose();
                     listView1.Items.Clear();
                     orders.Clear();
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "end convert");
                 }
                 else {
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm),"sleep 3 m...");
                     Thread.Sleep(3000);
                 }
             }
@@ -888,6 +975,22 @@ namespace WindowsFormsApplication1
             List<PdfStream> pdfdata = new List<PdfStream>();
             pdfdata.Add(stream);
             HttpUtil.updatePdfStreamData(pdfdata);
+        }
+
+        private void button1_Click_2(object sender, EventArgs e)
+        {
+            SolidFramework.License.Import(@"d:\User\license.xml");
+            //HttpUtil.getPdfStreamDataByLimit(1);
+            String pdfPath = @"C:\Users\Administrator\Desktop\9\16\506190882934.PDF";
+            String txtPath = @"C:\Users\Administrator\Desktop\9\16\506190882934.txt";
+            List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
+            //将txt中的列提取出来
+            Console.WriteLine("..............");
+            List<TxtEntity> paragraphList = getParagraph(tbPostionList,1000,2);
+
+            foreach (TxtEntity txt in paragraphList) {
+                dao.savePdfTxtInfo(txt);
+            }
         }
         
     }
