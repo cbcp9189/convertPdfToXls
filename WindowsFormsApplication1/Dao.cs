@@ -18,7 +18,7 @@ namespace WindowsFormsApplication1
     {
         public MySqlConnection getmysqlcon()
         {
-            string M_str_sqlcon = "server=106.75.3.227;user id=root;password=hoboom;database=scrapy"; //根据自己的设置
+            string M_str_sqlcon = "server=10.9.23.110;user id=root;password=hoboom;database=scrapy"; //根据自己的设置
             //string M_str_sqlcon = "server=106.75.116.2;user id=root;password=hoboom;database=hooboom"; //根据自己的设置
             return new MySqlConnection(M_str_sqlcon);
         }
@@ -81,9 +81,12 @@ namespace WindowsFormsApplication1
         }
 
 
-        public void savePdfToExcelInfo(AnnouncementEntity aey, TableEntity tb)
+        public void savePdfToExcelInfo(PdfStream aey, TableEntity tb)
         {
-            String sortExcelPath = tb.excelPath.Replace("X:/excel/","");
+            if (tb.excelPath == null) {
+                tb.excelPath = "";
+            }
+            String sortExcelPath = tb.excelPath.Replace("W:/excel/", "");
 
             StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,version,content,across_page,flag) VALUES(");
             sql.Append(aey.doc_id);
@@ -197,7 +200,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream where update_flag = 4 ");
+            StringBuilder sql = new StringBuilder("SELECT min(id) min from pdf_stream where update_flag = 12 ");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
 
             MySqlDataReader reader = mysqlcom.ExecuteReader();
@@ -216,7 +219,7 @@ namespace WindowsFormsApplication1
         {
             MySqlConnection con = getmysqlcon();
             con.Open();
-            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream where update_flag = 4 ");
+            StringBuilder sql = new StringBuilder("SELECT max(id) max from pdf_stream where update_flag = 12 ");
             MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
             MySqlDataReader reader = mysqlcom.ExecuteReader();
             if (reader.Read())
@@ -304,6 +307,79 @@ namespace WindowsFormsApplication1
                 conn.Close();
             }
 
+        }
+
+        public List<AnnouncementEntity> getPdfStreamList(long start, long end,int limit)
+        {
+            MySqlConnection con = getmysqlcon();
+            con.Open();
+            StringBuilder sql = new StringBuilder("SELECT id,doc_id,pdf_path,doc_type from pdf_stream where pdf_path != '' AND doc_type = 13  AND excel_flag = 0  and pdf_path like '%/2016/%' ");
+            sql.Append(" and id >= ");
+            sql.Append(start);
+            sql.Append(" and id < ");
+            sql.Append(end);
+            sql.Append(" limit ");
+            sql.Append(limit);
+            MySqlCommand mysqlcom = new MySqlCommand(sql.ToString(), con);
+            MySqlDataReader reader = mysqlcom.ExecuteReader();
+            List<AnnouncementEntity> list = new List<AnnouncementEntity>();
+            while (reader.Read())
+            {
+                AnnouncementEntity ae = new AnnouncementEntity();
+                ae.id = (long)reader["id"];
+                ae.doc_id = (long)reader["doc_id"];
+                ae.pdfPath = (string)reader["pdf_path"];
+                ae.doc_type = 13;
+                list.Add(ae);
+            }
+            con.Close();
+            Console.WriteLine("get list end....." + sql.ToString());
+            return list;
+        }
+
+        public void savePdfTxtInfo(TxtEntity txt)
+        {
+            try
+            {
+                StringBuilder sql = new StringBuilder("INSERT INTO `scrapy`.`pdf_txt` (docid, doctype, content_id, content, page_number, left_x, top_y, right_x, bottom_y, create_time, type, is_tb_content) VALUES (");
+                sql.Append(txt.docid);
+                sql.Append(", ");
+                sql.Append(txt.doctype);
+                sql.Append(",");
+                sql.Append(txt.content_id);
+                sql.Append(",");
+                sql.Append("@content");
+                sql.Append(",");
+                sql.Append(txt.pageNumber);
+                sql.Append(",");
+                sql.Append(txt.left);
+                sql.Append(",");
+                sql.Append(txt.top);
+                sql.Append(",");
+                sql.Append(txt.right);
+                sql.Append(",");
+                sql.Append(txt.bottom);
+                sql.Append(",");
+                sql.Append(DateTimeUtil.GetTimeStamp());
+                sql.Append(",");
+                sql.Append(txt.type);
+                sql.Append(",");
+                sql.Append(txt.is_tb_content);
+                sql.Append(")");
+                //Console.WriteLine(sql.ToString());
+                MySqlConnection con = getmysqlcon();
+                con.Open();
+                MySqlCommand mysqlcom = con.CreateCommand();
+                mysqlcom.Parameters.AddWithValue("@content", txt.content);
+                mysqlcom.CommandText = sql.ToString();
+                mysqlcom.ExecuteNonQuery();
+                con.Close();
+            }
+            catch (Exception ex) { 
+                
+            
+            }
+            Console.WriteLine("insert end.....");
         }
     }
 }

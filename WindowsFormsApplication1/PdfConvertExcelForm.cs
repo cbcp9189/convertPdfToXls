@@ -78,7 +78,7 @@ namespace WindowsFormsApplication1
             {
                 foreach (AnnouncementEntity ae in articleList) 
                 {
-                    dealPdfConvertExcel(ae);
+                    //dealPdfConvertExcel(ae);
                 }
                 articleList = dao.getPdfStreamList(minid, maxid, LIMIT);
             }
@@ -96,46 +96,37 @@ namespace WindowsFormsApplication1
             buttonStop.Enabled = false;
         }
 
-        private void dealPdfConvertExcel(AnnouncementEntity ae)
+        private void dealPdfConvertExcel(String pdfPath)
         {
                 try
                 {
                     DateTime d1 = System.DateTime.Now;
-                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start convert....");
-                    String pdfPath = sourceFolder + ae.pdfPath.Replace("GSGGFWB/", "");
-                    //String pdfPath = ae.pdfPath.Replace("GSGGFWB/", "");
-                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), pdfPath);
-                    if (!File.Exists(pdfPath))
-                    {
-                        dao.updatePdfStreamInfo(ae, -17);
-                    }
-                    startThreadAddItem(pdfPath);
-                    String xlsFile = Path.ChangeExtension(pdfPath.Replace("juyuan_data", "excel/GSGGFWB"), "xlsx");
+                    Console.WriteLine("d1-" + d1);
+                    String xlsFile = Path.ChangeExtension(pdfPath, "xlsx");
                     SolidConvertUtil solidConvertUtil = new SolidConvertUtil();
-                    ConversionStatus result = solidConvertUtil.pdfConvertExcel(pdfPath, xlsFile);
+                    ConversionStatus result = solidConvertUtil.pdfConvertExcel2(pdfPath,xlsFile);
                     if (result == ConversionStatus.Success)
                     {
                         Boolean issaveSuccess = true;
                         //生成成功
                         if (File.Exists(xlsFile))
                         {
-                            startThreadAddItem("enter convert function...");
                             FileUtil.createDir(Path.GetDirectoryName(xlsFile));
                             String txtPath = Path.ChangeExtension(xlsFile, ".txt");
                             List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
                             if (tbPostionList == null || tbPostionList.Count == 0)
                             {
-                                startThreadAddItem(d1 + ": update excel_flag :-10 " + ae.doc_id);
-                                dao.updatePdfStreamInfo(ae, -10);
                                 return;
                             }
-                            startThreadAddItem("tbPostionList:" + tbPostionList.Count);
                             //对txt中的table进行合并
                             List<TableEntity> mergeTableList = mergeTable(tbPostionList);
+                            
                             //获取多个sheet的文本
                             ExcelUtil eu = new ExcelUtil();
                             List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
                             int index = 0;
+                            DateTime d2 = System.DateTime.Now;
+                            Console.WriteLine("d2-" + d2);
                             for (int i=0;i<mergeTableList.Count;i++)
                             {
                                 TableEntity tableEntity = mergeTableList[i];
@@ -205,6 +196,8 @@ namespace WindowsFormsApplication1
                                 }
                                 index++;
                             }
+                            DateTime d3 = System.DateTime.Now;
+                            Console.WriteLine("d3-"+d3);
                             foreach (TableEntity tableEntity in mergeTableList)
                             {
                                 if (tableEntity.flag == SysConstant.ERROR)
@@ -215,28 +208,35 @@ namespace WindowsFormsApplication1
                             }
                             if (issaveSuccess)
                             {
-                                startThreadAddItem(d1 + " update excel_flag :1 " + ae.doc_id);
-                                dao.updatePdfStreamInfo(ae, 1);
+                                
+                                //startThreadAddItem(d1 + " update excel_flag :1 " + ae.doc_id);
+                                //dao.updatePdfStreamInfo(ae, 1);
+                                //将txt中的列提取出来
+                                List<TxtEntity> paragraphList = getParagraph(tbPostionList, 11, 22);
+                                foreach (TxtEntity txt in paragraphList) {
+                                    Console.WriteLine(txt.content);
+                                }
                             }
                             else
                             {
-                                startThreadAddItem(d1 + " update excel_flag :-10 " + ae.doc_id);
-                                dao.updatePdfStreamInfo(ae, -10);
+                                // startThreadAddItem(d1 + " update excel_flag :-10 " + ae.doc_id);
+                               // dao.updatePdfStreamInfo(ae, -10);
                             }
                         }
+                        Console.WriteLine("end............");
                     }
                     else 
                     {
-                        startThreadAddItem(Path.GetFileName(pdfPath) + " failed ");
+                        //startThreadAddItem(Path.GetFileName(pdfPath) + " failed ");
                         //将pdf_stream表excel_flag标识改为 -1
-                        dao.updatePdfStreamInfo(ae, -(int)result);
+                        //dao.updatePdfStreamInfo(ae, -(int)result);
                     }
                    
                 }
                 catch (Exception ex)
                 {
-                    startThreadAddItem(ex.GetBaseException().Message);
-                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
+                    //startThreadAddItem(ex.GetBaseException().Message);
+                    //LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
                 }
                 //结束生成
         }
@@ -554,10 +554,7 @@ namespace WindowsFormsApplication1
             if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 String pdfPath = OpFile.FileName;
-                int type = 5;
-                initData(type, pdfData.data);
-                convertExcel();
-                processor.WaitTillComplete();
+                dealPdfConvertExcel(pdfPath);
 
             }
         }
@@ -644,8 +641,7 @@ namespace WindowsFormsApplication1
                             }
                             //对txt中的table进行合并
                             List<TableEntity> mergeTableList = mergeTable(tbPostionList);
-                            //将txt中的列提取出来
-                            List<TxtEntity> paragraphList = getParagraph(tbPostionList, steam.doc_id, steam.doc_type);
+                            
                             //获取多个sheet的文本
                             ExcelUtil eu = new ExcelUtil();
                             List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
@@ -756,6 +752,8 @@ namespace WindowsFormsApplication1
                                 }
                                 steam.excel_flag = 1;
                                 updatePdfStream(steam);
+                                //将txt中的列提取出来
+                                List<TxtEntity> paragraphList = getParagraph(tbPostionList, steam.doc_id, steam.doc_type);
                                 foreach (TxtEntity txt in paragraphList)
                                 {
                                     dao.savePdfTxtInfo(txt);
@@ -789,7 +787,7 @@ namespace WindowsFormsApplication1
             }
 
             //当完成时,在列队里加入一个任务
-            //addConvertJob();
+            addConvertJob();
 
         }
         public void addConvertJob() {
@@ -916,7 +914,7 @@ namespace WindowsFormsApplication1
             return message;
         }
 
-        public void initData(int convertType,List<PdfStream> pdfStreamList)
+        public void initData(List<PdfStream> pdfStreamList)
         {
             foreach(PdfStream stream in pdfStreamList){
                 JobOrder order = new JobOrder();
@@ -924,7 +922,6 @@ namespace WindowsFormsApplication1
                 order.stream = stream;
                 orders.Add(order);
             }
-            converterType = convertType;
             reconstructionMode = ReconstructionMode.Flowing;
 
             // Setup the Solid Framework Job Processor.
@@ -944,28 +941,35 @@ namespace WindowsFormsApplication1
         private void button3_Click(object sender, EventArgs e)
         {
             SolidFramework.License.Import(@"c:\User\license.xml");
-            int type = 5;
-            
             while (true)
             {
-                PdfData pdfData = HttpUtil.getPdfStreamDataByLimit(30);
-                if (pdfData != null && pdfData.data != null && pdfData.data.Count >0 )
+                try
                 {
-                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start next convert");
-                    initData(type, pdfData.data);
-                    convertExcel();
-                    processor.WaitTillComplete();
-                    processor.JobProgressEvent -= processor_JobProgressEvent;
-                    processor.JobCompletedEvent -= processor_JobCompletedEvent;
-                    processor.Close();
-                    processor.Dispose();
-                    listView1.Items.Clear();
-                    orders.Clear();
-                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "end convert");
+
+                    PdfData pdfData = HttpUtil.getPdfStreamDataByLimit(30);
+                    if (pdfData != null && pdfData.data != null && pdfData.data.Count > 0)
+                    {
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start next convert");
+                        initData(pdfData.data);
+                        convertExcel();
+                        processor.WaitTillComplete();
+                        processor.JobProgressEvent -= processor_JobProgressEvent;
+                        processor.JobCompletedEvent -= processor_JobCompletedEvent;
+                        processor.Close();
+                        processor.Dispose();
+                        listView1.Items.Clear();
+                        orders.Clear();
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "end convert");
+                    }
+                    else
+                    {
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "sleep 3 m...");
+                        Thread.Sleep(3000);
+                    }
                 }
-                else {
-                    LogHelper.WriteLog(typeof(PdfConvertExcelForm),"sleep 3 m...");
-                    Thread.Sleep(3000);
+                catch (Exception ex) {
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "error...");
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm),ex);
                 }
             }
         }

@@ -7,23 +7,20 @@ using System.Threading.Tasks;
 namespace WindowsFormsApplication1.entity
 {
     //txt实体类
-    public class TableEntity
+    public class TxtEntity
     {
-        public int totalPage { get; set; } //总页数
+        public long docid;    //pdfid
 
+        public int doctype;
         public int pageNumber { get; set; } //当前页
         public float left { get; set; }
         public float right { get; set; }
         public float top { get; set; }
         public float bottom { get; set; }
-       
-        public int content_type;  //内容类型
+
+        public int type;  //内容类型1段落  2表格  
         public int content_id;   //内容id
         public String content;  //内容
-        public long pdf_id;    //pdfid
-        public int pages = 0;     //跨的页数
-        public String excelPath;  //excel路径
-        public List<String> sheetIds;  //需要合并的sheetid
-        public int flag = 0;  //状态
+        public int is_tb_content = 0;     //是否在表格中  0 否   1是
     }
 }

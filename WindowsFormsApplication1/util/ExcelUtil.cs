@@ -136,19 +136,16 @@ namespace WindowsFormsApplication1.util
                
                 int num = ws.LastRowUsed().RowNumber();
                 newSheet.Cell(local, 1).Value = rngData;
-                //设置列的高度和宽度
+                //设置宽度和列的高度
                 for (int j = 1; j <= ws.LastColumnUsed().ColumnNumber(); j++) 
                 {
                     newSheet.Column(j).Width = ws.Column(j).Width;
-                    Console.WriteLine("j-"+j);
                 }
-                for (int j = 1; j < ws.LastRowUsed().RowNumber(); j++)
+                for (int j = local; j < ws.LastRowUsed().RowNumber(); j++)
                 {
                     newSheet.Row(j).Height = ws.Row(j).Height;
-                    Console.WriteLine("j2-" + j);
                 }
                 local += num;
-                Console.WriteLine("----------------------");
             }
             newWork.SaveAs(excelPath,true);
         }

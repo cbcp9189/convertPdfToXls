@@ -213,7 +213,7 @@ namespace WindowsFormsApplication1
             objInfo.Host = "106.75.3.227";
             //objInfo.IdentityFile = "password"; //有2中认证，一种基于PrivateKey,一种基于password
             objInfo.Pass = "Hu20160802Ben"; //基于密码
-            SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
+            //SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
             DataBaseConnect dc = new DataBaseConnect();
             int index = 200;
             int limit = 2;
@@ -232,7 +232,7 @@ namespace WindowsFormsApplication1
                 int pdfIndex = pdf.IndexOf("/"); 
                 String downloadPath = localRoot + pdf.Substring(pdfIndex+1);
                 Console.WriteLine(downloadPath);
-                objSFTPHelper.Download(real_pdf, downloadPath);
+                //objSFTPHelper.Download(real_pdf, downloadPath);
                 pdfConvertWord(downloadPath);
             }
         }
@@ -244,12 +244,12 @@ namespace WindowsFormsApplication1
             objInfo.Host = "106.75.3.227";
             //objInfo.IdentityFile = "password"; //有2中认证，一种基于PrivateKey,一种基于password
             objInfo.Pass = "Hu20160802Ben"; //基于密码
-            SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
+            //SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
             //ArrayList list = objSFTPHelper.GetFileList("/data/dearMrLei/data/rich/2017/07/01");
             //string remotePath, string localPath
             String remotePath = "/data/dearMrLei/data/rich/2017/07/01/FZLzzR9H8uJCtGcqg.pdf";
             String localPath = "D:\\test\\pdf\\FZLzzR9H8uJCtGcqg.pdf";
-            objSFTPHelper.Download(remotePath,localPath);
+            //objSFTPHelper.Download(remotePath,localPath);
             //foreach (String str in list)
             //{
             //    Console.WriteLine(str);
@@ -297,21 +297,13 @@ namespace WindowsFormsApplication1
             objInfo.Host = "106.75.3.227";
             //objInfo.IdentityFile = "password"; //有2中认证，一种基于PrivateKey,一种基于password
             objInfo.Pass = "Hu20160802Ben"; //基于密码
-            SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
+            //SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
             String local = localRoot + "2650939662_1.docx";
             String remote = "/data/dearMrLei/data/rich";
             String remoteFile = "/data/dearMrLei/data/rich/2650939662_1.docx";
-            ArrayList list = objSFTPHelper.GetFileList(remoteFile);
+            //ArrayList list = objSFTPHelper.GetFileList(remoteFile);
             
-            if (list != null && list.Count > 0)
-            {
-                Console.WriteLine("不是 0 ");
-            }
-            else
-            {
-                Console.WriteLine("是 0");
-                objSFTPHelper.Upload(local, remote);
-            }
+            
         }
 
         private void button7_Click(object sender, EventArgs e)
@@ -371,7 +363,7 @@ namespace WindowsFormsApplication1
             objInfo.Host = "106.75.3.227";
             //objInfo.IdentityFile = "password"; //有2中认证，一种基于PrivateKey,一种基于password
             objInfo.Pass = "Hu20160802Ben"; //基于密码
-            SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
+            //SFTPHelper objSFTPHelper = new SFTPHelper(objInfo);
             DataBaseConnect dc = new DataBaseConnect();
             String sql = "SELECT * from article where pdf_path != '' limit ";
             sql += index;
@@ -387,26 +379,7 @@ namespace WindowsFormsApplication1
             }
             foreach (String pdf in list)
             {
-                String real_pdf = remoteRoot + pdf;
-                Console.WriteLine(real_pdf);
-                int pdfIndex = pdf.IndexOf("/");
-                String downloadPath = localRoot + pdf.Substring(pdfIndex + 1);
-                Console.WriteLine(downloadPath);
-                Boolean isSuccess = objSFTPHelper.Download(real_pdf, downloadPath);
-                if (isSuccess)
-                {
-                    SolidConvertUtil solid = new SolidConvertUtil();
-                    try
-                    {
-                        solid.pdfConvertWord(downloadPath);
-                        //solid.pdfConvertExcel(downloadPath);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-
-                }
+                
             }
 
 
@@ -439,7 +412,9 @@ namespace WindowsFormsApplication1
                 //对txt中的table进行合并
                 List<TableEntity> mergeTableList = mergeTable(tbPostionList);
                 //生成excel
-                String excelPath = SolidConvertUtil.pdfConvertExcel(pdfPath);
+                String excelPath = Path.ChangeExtension(pdfPath, "xlsx");
+                SolidConvertUtil solid = new SolidConvertUtil();
+                solid.pdfConvertExcel2(pdfPath, excelPath);
                 //获取多个sheet的文本
                 ExcelUtil eu = new ExcelUtil();
                 List<IXLWorksheet> sheetList = eu.getExcelSheetList(excelPath);
@@ -739,22 +714,65 @@ namespace WindowsFormsApplication1
 
         private void button10_Click(object sender, EventArgs e)
         {
-            //double rate = Convert.ToDouble(100) / Convert.ToDouble(105);
-            OpenFileDialog OpFile = new OpenFileDialog();
-            if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            for (int a = 0; a < 5; a++)
             {
-                String path = OpFile.FileName;
-                ExcelUtil.TestExcel(path);
+                Task.Factory.StartNew(() =>
+                {
+                    for(int i=0;i<100;i++){
+                        Console.WriteLine(a + "-" + i);
+                    }
+                });
             }
+            Test2Form t = new Test2Form();
+            t.ShowDialog();
+            //double rate = Convert.ToDouble(100) / Convert.ToDouble(105);
+           // OpenFileDialog OpFile = new OpenFileDialog();
+            //if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            //{
+              //  String path = OpFile.FileName;
+                //ExcelUtil.TestExcel(path);
+            //}
             //Console.WriteLine(rate);
 
         }
 
         private void button11_Click(object sender, EventArgs e)
         {
-            startThreadAddItem("hello world");
-
+            SolidFramework.License.Import(@"d:\User\license.xml");
+            //测试自己写多线程
+            List<String> list = new List<String>();
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Multiselect = true;
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                for (int i = 0; i < dlg.FileNames.Length; i++)
+                    list.Add(dlg.FileNames[i]);
+            }
+            
+            
+            foreach(String str in list)
+            {
+                ThreadPool.QueueUserWorkItem(handlePdf, str);
+            }
         }
+
+        public void handlePdf(Object obj) 
+        {
+            String pdf = (String)obj;
+            Console.WriteLine(pdf);
+            String xls = Path.ChangeExtension(pdf,"xlsx");
+            Console.WriteLine(xls);
+            SolidConvertUtil solid = new SolidConvertUtil();
+            try
+            {
+                solid.pdfConvertExcel(pdf, xls);
+            }
+            catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+            }
+            
+        }
+
 
         public void startThreadAddItem(String context)
         {
@@ -784,6 +802,49 @@ namespace WindowsFormsApplication1
             }
             
 
+        }
+
+        private void button13_Click(object sender, EventArgs e)
+        {
+            SolidFramework.License.Import(@"d:\User\license.xml");
+            //测试自己写多线程
+            List<String> list = new List<String>();
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Multiselect = true;
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                for (int i = 0; i < dlg.FileNames.Length; i++)
+                    list.Add(dlg.FileNames[i]);
+            }
+
+            foreach (String str in list)
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    handlePdf(str);
+                });
+            }
+        }
+
+        private void button14_Click(object sender, EventArgs e)
+        {
+            SolidFramework.License.Import(@"d:\User\license.xml");
+            //测试自己写多线程
+            List<String> list = new List<String>();
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Multiselect = true;
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                for (int i = 0; i < dlg.FileNames.Length; i++)
+                    list.Add(dlg.FileNames[i]);
+            }
+            foreach (String path in list)
+            {
+                ParameterizedThreadStart threadStart = new ParameterizedThreadStart(handlePdf);
+                Thread thread = new Thread(threadStart);
+                thread.Start(path);
+            }
+           
         }
     }
 }

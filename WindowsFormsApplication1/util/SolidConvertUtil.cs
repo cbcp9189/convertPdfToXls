@@ -6,60 +6,69 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WindowsFormsApplication1.util;
 
 namespace WindowsFormsApplication1
 {
     class SolidConvertUtil
     {
-        //pdf生成word
-        public void pdfConvertWord(String pdfPath)
+        
+
+        public void pdfConvertExcel(String path, String excelPath)
         {
-            SolidFramework.License.Import(@"d:\User\license.xml");
-            String wordPath = Path.ChangeExtension(pdfPath, ".docx");
-            Console.WriteLine(wordPath);
-            using (PdfToWordConverter converter = new PdfToWordConverter())
+            try
             {
-                //Add the selected file 
-                converter.AddSourceFile(pdfPath);
+                using (PdfToExcelConverter converter = new PdfToExcelConverter())
+                {
+                    // Add files to convert. 
+                    converter.AddSourceFile(path);
+                    
+                    //This combines all tables onto one sheet 
+                    converter.SingleTable = 0;
 
-                //Continuous mode recovers text formatting, graphics and text flow 
-                converter.ReconstructionMode = ReconstructionMode.Continuous;
+                    //This gets Non Table Content 
+                    converter.TablesFromContent = false;
 
-                //Or Use Flowing Reconstruction Mode if you need to keep the look and feel of the PDF 
-                converter.ReconstructionMode = ReconstructionMode.Flowing;
+                    //convert the file, calling it the same name but with a different extention , setting overwrite to true 
+                    converter.ConvertTo(excelPath, true);
+                    Console.WriteLine("end............");
+                }
 
-                // To catch conversion result and display it to the user use the following 
-                ConversionStatus result = converter.ConvertTo(wordPath, true);
-                //To just convert the file with no message use only 
-                converter.ConvertTo(wordPath, true);
-                Console.WriteLine("convert word end...");
+            }
+            catch (Exception ex) 
+            {
+                Console.WriteLine(ex.Message);
             }
         }
 
-        public static String pdfConvertExcel(String path)
+        public ConversionStatus pdfConvertExcel2(String path,String xls)
         {
-            Console.WriteLine(".................start");
-            SolidFramework.License.Import(@"d:\User\license.xml");
-            String xlsFile = Path.ChangeExtension(path, "xlsx");
-            Console.WriteLine(xlsFile);
-            using (PdfToExcelConverter converter = new PdfToExcelConverter())
+            
+            Console.WriteLine(xls);
+            try
             {
-                // Add files to convert. 
-                converter.AddSourceFile(path);
-                //Set the preferred conversion properties 
+                using (PdfToExcelConverter converter = new PdfToExcelConverter())
+                {
+                    // Add files to convert. 
+                    converter.AddSourceFile(path);
 
-                //This combines all tables onto one sheet 
-                converter.SingleTable = 0;
+                    //This combines all tables onto one sheet 
+                    converter.SingleTable = 0;
 
-                //This gets Non Table Content 
-                converter.TablesFromContent = false;
+                    //This gets Non Table Content 
+                    converter.TablesFromContent = false;
+                    return converter.ConvertTo(xls, true);
 
-                //convert the file, calling it the same name but with a different extention , setting overwrite to true 
-                converter.ConvertTo(xlsFile, true);
-                Console.WriteLine(".................end");
-                return xlsFile;
+                    //convert the file, calling it the same name but with a different extention , setting overwrite to true 
+                    //return xls;
+                }
+
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            return ConversionStatus.Fail;
         }
 
     }

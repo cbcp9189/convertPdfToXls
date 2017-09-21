@@ -94,6 +94,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\opt\MySql.Data.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Org.Mentalis.Security">
       <HintPath>..\..\..\..\..\..\opt\SharpSSH-1.1.1.13.bin\Org.Mentalis.Security.dll</HintPath>
     </Reference>
@@ -160,9 +164,21 @@
   <ItemGroup>
     <Compile Include="constant\SysConstant.cs" />
     <Compile Include="Dao.cs" />
+    <Compile Include="entity\Json.cs" />
+    <Compile Include="entity\PdfData.cs" />
+    <Compile Include="entity\PdfStream.cs" />
+    <Compile Include="entity\PdfModel.cs" />
+    <Compile Include="entity\TxtEntity.cs" />
     <Compile Include="entity\TableEntity.cs" />
     <Compile Include="entity\KeyValEntity.cs" />
     <Compile Include="entity\User.cs" />
+    <Compile Include="JobOrder.cs" />
+    <Compile Include="Test2Form.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Test2Form.Designer.cs">
+      <DependentUpon>Test2Form.cs</DependentUpon>
+    </Compile>
     <Compile Include="TestTxt.cs" />
     <Compile Include="Test\TestDapper.cs" />
     <Compile Include="util\DataBaseConnect.cs" />
@@ -183,12 +199,16 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="util\DateTimeUtil.cs" />
     <Compile Include="util\ExcelUtil.cs" />
+    <Compile Include="util\HttpUtil.cs" />
     <Compile Include="util\LogHelper.cs" />
-    <Compile Include="util\SFTPHelper.cs" />
+    <Compile Include="util\PathUtil.cs" />
     <Compile Include="util\SolidConvertUtil.cs" />
     <Compile Include="entity\SshConnectionInfo.cs" />
     <Compile Include="util\FileUtil.cs" />
     <Compile Include="util\TxtUtil.cs" />
+    <EmbeddedResource Include="Test2Form.resx">
+      <DependentUpon>Test2Form.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TestForm.resx">
       <DependentUpon>TestForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -217,7 +237,9 @@
     <None Include="WindowsFormsApplication1_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -255,6 +277,11 @@
       <Isolated>False</Isolated>
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="PathFile.xml">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
