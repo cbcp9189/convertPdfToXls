@@ -29,11 +29,15 @@
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.button5 = new System.Windows.Forms.Button();
+            this.button4 = new System.Windows.Forms.Button();
+            this.button1 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.listView1 = new System.Windows.Forms.ListView();
             this.columnHeader10 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader11 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader12 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader13 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.button2 = new System.Windows.Forms.Button();
             this.buttonStop = new System.Windows.Forms.Button();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -45,12 +49,13 @@
             this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.button1 = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.button5);
+            this.groupBox1.Controls.Add(this.button4);
             this.groupBox1.Controls.Add(this.button1);
             this.groupBox1.Controls.Add(this.button3);
             this.groupBox1.Controls.Add(this.listView1);
@@ -63,11 +68,41 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Files to Convert";
             // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(534, 309);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(75, 23);
+            this.button5.TabIndex = 17;
+            this.button5.Text = "button5";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click_1);
+            // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(534, 419);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(77, 31);
+            this.button4.TabIndex = 15;
+            this.button4.Text = "button4";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(534, 387);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(77, 23);
+            this.button1.TabIndex = 14;
+            this.button1.Text = "button1";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_2);
+            // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(16, 329);
+            this.button3.Location = new System.Drawing.Point(16, 283);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(75, 23);
+            this.button3.Size = new System.Drawing.Size(75, 69);
             this.button3.TabIndex = 13;
             this.button3.Text = "start";
             this.button3.UseVisualStyleBackColor = true;
@@ -78,7 +113,8 @@
             this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader10,
             this.columnHeader11,
-            this.columnHeader12});
+            this.columnHeader12,
+            this.columnHeader13});
             this.listView1.Location = new System.Drawing.Point(16, 20);
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(780, 236);
@@ -101,11 +137,16 @@
             this.columnHeader12.Text = "Status";
             this.columnHeader12.Width = 120;
             // 
+            // columnHeader13
+            // 
+            this.columnHeader13.Text = "time";
+            this.columnHeader13.Width = 100;
+            // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(336, 387);
+            this.button2.Location = new System.Drawing.Point(534, 350);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(112, 31);
+            this.button2.Size = new System.Drawing.Size(77, 31);
             this.button2.TabIndex = 11;
             this.button2.Text = "TestExcelbutton";
             this.button2.UseVisualStyleBackColor = true;
@@ -115,7 +156,7 @@
             // 
             this.buttonStop.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.buttonStop.Enabled = false;
-            this.buttonStop.Location = new System.Drawing.Point(709, 368);
+            this.buttonStop.Location = new System.Drawing.Point(161, 283);
             this.buttonStop.Name = "buttonStop";
             this.buttonStop.Size = new System.Drawing.Size(75, 69);
             this.buttonStop.TabIndex = 10;
@@ -169,16 +210,6 @@
             this.columnHeader9.Text = "Status";
             this.columnHeader9.Width = 178;
             // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(536, 387);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 14;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click_2);
-            // 
             // PdfConvertExcelForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -212,5 +243,8 @@
         private System.Windows.Forms.ColumnHeader columnHeader12;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.ColumnHeader columnHeader13;
+        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button button5;
     }
 }
