@@ -41,10 +41,13 @@ namespace WindowsFormsApplication1
         static Boolean startFlag = true;
         static int LIMIT = 50;
         public Dao dao = new Dao();
+
+        
         public PdfConvertExcelForm()
         {
             InitializeComponent();
             button1.Visible = false;
+            SolidFramework.License.Import(@"d:\User\license.xml");
            // button2.Visible = false;
 
         }
@@ -213,7 +216,7 @@ namespace WindowsFormsApplication1
                             }
                             if (issaveSuccess)
                             {
-                                
+                                Console.WriteLine("成功。。。。。。。。。。。。。。");
                                 //startThreadAddItem(d1 + " update excel_flag :1 " + ae.doc_id);
                                 //dao.updatePdfStreamInfo(ae, 1);
                                 //将txt中的列提取出来
@@ -224,6 +227,7 @@ namespace WindowsFormsApplication1
                             }
                             else
                             {
+                                Console.WriteLine("失败。。。。。。。。。。。。。。");
                                 // startThreadAddItem(d1 + " update excel_flag :-10 " + ae.doc_id);
                                // dao.updatePdfStreamInfo(ae, -10);
                             }
@@ -670,6 +674,11 @@ namespace WindowsFormsApplication1
                                     }
                                     int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
                                     String excelContent = excelTxt.Replace("\n", "");
+                                    if (checkContentErrorStr(excelContent)) {
+                                        steam.excel_flag = SysConstant.ERROR_STR_FLAG;  //生成txt出错
+                                        updatePdfStream(steam);
+                                        return;
+                                    }
                                     double rate = (double)txtLen / excelTxtLen;
                                     rate = Math.Round(rate, 3);
                                     string singleExcelPath = Path.ChangeExtension(xlsFile, index + ".xlsx");
@@ -710,6 +719,12 @@ namespace WindowsFormsApplication1
                                             }
                                             int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
                                             excelContent += eu.getExcelSheetText(sheetList[index]).Replace("\n", "");
+                                            if (checkContentErrorStr(excelContent))
+                                            {
+                                                steam.excel_flag = SysConstant.ERROR_STR_FLAG;  //生成txt中包含@;
+                                                updatePdfStream(steam);
+                                                return;
+                                            }
                                             totalLen += secondSheetTxtLen;
                                             double rate1 = (double)txtLen / totalLen;
                                             rate1 = Math.Round(rate1, 3);
@@ -813,6 +828,13 @@ namespace WindowsFormsApplication1
             
 
         }
+        public Boolean checkContentErrorStr(String content){
+            if (content != null && content.Contains(SysConstant.DATE_ERROR_STR))
+            {
+                return true;
+            }
+            return false;
+        }
         public void addConvertJob() {
             PdfData pdfdata = HttpUtil.getPdfStreamDataByLimit(1);
             if (pdfdata != null && pdfdata.data != null &&pdfdata.data.Count > 0)
@@ -859,6 +881,7 @@ namespace WindowsFormsApplication1
 
         private void UpdateProgress(SolidFramework.Services.JobProgressEventArgs e)
         {
+            
             
             ListViewItem[] items = listView1.Items.Find(Path.GetFileName(e.JobEnvelope.SourcePath), false);
             if (items.Count() > 0)
@@ -976,16 +999,16 @@ namespace WindowsFormsApplication1
 
             processor.JobProgressEvent += processor_JobProgressEvent;
             processor.JobCompletedEvent += processor_JobCompletedEvent;
-
+            processor.WorkerTimeOut = new TimeSpan(0, 2, 0);
             processedCount = 0;
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            buttonStop.Enabled = true;
+            buttonStop.Enabled = true; 
             button3.Enabled = false;
             startFlag = true;
-            SolidFramework.License.Import(@"c:\User\license.xml");
+            SolidFramework.License.Import(@"C:\User\license.xml");
             while (startFlag)
             {
                 try
@@ -1069,43 +1092,81 @@ namespace WindowsFormsApplication1
             {
                 SolidFramework.License.Import(@"d:\User\license.xml");
                 List<String> list = new List<string>();
-                Console.WriteLine(DateTime.Now);
-                using (JobProcessor processor = new JobProcessor())
+                foreach (String pdfPath in dlg.FileNames)
                 {
-                    try
-                    {
-                        processor.KeepJobs = true;
-                        processor.WorkerTimeOut = new TimeSpan(0, 3, 0);
-                        foreach (String pdfPath in dlg.FileNames)
+                    Console.WriteLine("------"+DateTime.Now);
+                    using (JobProcessor processor = new JobProcessor())
+                    
+                    processor.WorkerTimeOut = new TimeSpan(0,0,30);
+                    Console.WriteLine("2222222222");
+                        try
                         {
-                            Console.WriteLine(pdfPath);
-                            String excelpath = Path.ChangeExtension(pdfPath, "xlsx");
-                            PdfToExcelJobEnvelope jobEnvelope = new PdfToExcelJobEnvelope();
-                            jobEnvelope.SourcePath = pdfPath;
-                            jobEnvelope.SingleTable = 0;
-                            jobEnvelope.TablesFromContent = false;
-                            processor.SubmitJob(jobEnvelope);
-                        }
-                        Console.WriteLine(DateTime.Now);
-                        processor.WaitTillComplete();
-                        Console.WriteLine(DateTime.Now);
-                        foreach (JobEnvelope processedJob in processor.ProcessedJobs)
-                        {
-                            Console.WriteLine(processedJob.Status + "..........");
-                            Console.WriteLine(processedJob.OutputPaths[0]);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
+                            PdfToExcelJobEnvelope job5 = new PdfToExcelJobEnvelope();
+                            job5.SourcePath = pdfPath;
+                            job5.TablesFromContent = false;
+                            job5.SingleTable = 0;
+                            Console.WriteLine("33............");
+                            processor.SubmitJob(job5);
+                            Console.WriteLine("end............");
+                            processor.WaitTillComplete();
+                            Console.WriteLine("----------------" + DateTime.Now);
 
-                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
-                    }
-                    //结束生成
-                    //listBoxFiles.Items.Add("convert end .....");
+                            foreach (JobEnvelope processedJob in processor.ProcessedJobs)
+                            {
+                                Console.WriteLine(processedJob.Status + "..........");
+                                Console.WriteLine(processedJob.OutputPaths[0]);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+
+                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
+                        }
+                        //结束生成
+                        //listBoxFiles.Items.Add("convert end .....");
+                    Console.WriteLine(DateTime.Now+"11211");
                 }
-                Console.WriteLine(DateTime.Now);
-                LogHelper.WriteLog(typeof(PdfConvertExcelForm), "end......................");
+                
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), "结束......................");
             }
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            //单线程模式
+            startFlag = true;
+            SolidFramework.License.Import(@"c:\User\license.xml");
+            while (startFlag)
+            {
+                try
+                {
+                    PdfData pdfData = HttpUtil.getPdfStreamDataByLimit(200);
+                    if (pdfData != null && pdfData.data != null && pdfData.data.Count > 0)
+                    {
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start next convert");
+                        foreach (PdfStream stream in pdfData.data)
+                        {
+                            
+                        }
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "end convert");
+                    }
+                    else
+                    {
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "sleep 3 m...");
+                        Thread.Sleep(3000);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "error...");
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), ex);
+                }
+            }
+            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "end......................");
+        }
+
+        private void button5_Click_1(object sender, EventArgs e)
+        {
         }
         
     }
