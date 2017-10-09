@@ -19,7 +19,23 @@ namespace WindowsFormsApplication1.util
             }
         }
 
-       
+        public static Boolean checkFileIsConvertByFileSize(string sFileFullName)
+        {
+            FileInfo fiInput = new FileInfo(sFileFullName);
+            if (fiInput.Exists)
+            {
+                double len = fiInput.Length;
+                if (len < 6291456)
+                {
+                    return true;
+                }
+                return false;
+            }
+            else
+            {
+                return false;
+            }
+        } 
 
     }
 }

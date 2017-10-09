@@ -32,7 +32,10 @@ namespace WindowsFormsApplication1
                     //convert the file, calling it the same name but with a different extention , setting overwrite to true 
                     converter.ConvertTo(excelPath, true);
                     Console.WriteLine("end............");
+                    
                 }
+
+                
 
             }
             catch (Exception ex) 
@@ -69,6 +72,30 @@ namespace WindowsFormsApplication1
                 Console.WriteLine(ex);
             }
             return ConversionStatus.Fail;
+        }
+
+        public void pdfConvertExcel(String path, String excelPath,PdfToExcelConverter converter)
+        {
+            try
+            {
+                    // Add files to convert. 
+                    converter.AddSourceFile(path);
+
+                    //This combines all tables onto one sheet 
+                    converter.SingleTable = 0;
+
+                    //This gets Non Table Content 
+                    converter.TablesFromContent = false;
+
+                    //convert the file, calling it the same name but with a different extention , setting overwrite to true 
+                    converter.ConvertTo(excelPath, true);
+                    Console.WriteLine("end............");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
     }

@@ -36,8 +36,7 @@ namespace WindowsFormsApplication1
         private SolidFramework.Services.JobProcessor processor;
 
         private int processedCount;
-        static String sourceFolder = @"X:/juyuan_data/";
-        static String outputFolder = @"X:\excel\";
+       
         static Boolean startFlag = true;
         static int LIMIT = 50;
         public Dao dao = new Dao();
@@ -47,7 +46,6 @@ namespace WindowsFormsApplication1
         {
             InitializeComponent();
             button1.Visible = false;
-            SolidFramework.License.Import(@"d:\User\license.xml");
            // button2.Visible = false;
 
         }
@@ -586,7 +584,7 @@ namespace WindowsFormsApplication1
                 }
                 
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 string strMessage = string.Empty;
                 if (ex.Message.Contains("correct license"))

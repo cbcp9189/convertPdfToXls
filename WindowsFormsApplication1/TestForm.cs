@@ -32,10 +32,15 @@ namespace WindowsFormsApplication1
         public static String remoteRoot = "/data/dearMrLei/data/subscriptions/";
         public static String localRoot = "D:\\test\\pdf\\";
         public static String chiPath = "D:\\tesseract\0823";
-        
+        public PdfToExcelConverter pdftoExcel;
+        public Task t = null;
+
+        //声明CancellationTokenSource对象
+        static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         public TestForm()
         {
             InitializeComponent();
+            SolidFramework.License.Import(@"d:\User\license.xml");
            
         }
 
@@ -79,44 +84,28 @@ namespace WindowsFormsApplication1
 
         private void button2_Click(object sender, EventArgs e)
         {
-            SolidFramework.License.Import(@"d:\User\license.xml");
-            //SolidFramework.Imaging.Ocr.SetTesseractDataDirectory(chiPath);
+            
             OpenFileDialog OpFile = new OpenFileDialog();
-            //show only PDF Files 
             OpFile.Filter = "PDF Files (*.pdf)|*.pdf";
             if (OpFile.ShowDialog() == DialogResult.OK)
             {
-                //Define Two Strings to capture the selection and saving of your file 
                 string pdfPath = OpFile.FileName;
                 string searchablePdfPath = Path.ChangeExtension(pdfPath, "searchable.pdf");
                 
                 using (PdfDocument document = new PdfDocument(pdfPath))
                 {
-                    //Create a new OCRTransformer Object 
-                    OcrTransformer transformer = new OcrTransformer();
-                    
-                    //Set the OcrType to Create a Searchable TextLayer
-                    transformer.OcrType = OcrType.CreateSearchableTextLayer;
-
-                    //Set the OCR Language to the Language in your PDF File - "en" for English, "es" for Spanish etc.
+                    var transformer = new OcrTransformer();
+                    transformer.OcrType = SolidFramework.Converters.Plumbing.OcrType.CreateSearchableTextLayer;
                     transformer.OcrLanguage = "zh";
-
-                    //Preserve the Original PDF Files Image Compression
                     transformer.OcrImageCompression = SolidFramework.Imaging.Plumbing.ImageCompression.PreserveOriginal;
-
-                    //Add the user selected PDF file to your transformer 
+                    SolidFramework.Imaging.Ocr.SetTesseractDataDirectory(@"D:\tessdata");
                     transformer.AddDocument(document);
-
-                    //Transform the PDF File 
                     transformer.Transform();
-
-                    //Save the new Searchable PDF file to the extension you specified earlier 
-                    document.SaveAs(searchablePdfPath, OverwriteMode.ForceOverwrite);
+                    document.SaveAs(searchablePdfPath, SolidFramework.Plumbing.OverwriteMode.ForceOverwrite);
                     Console.WriteLine(".................end");
                 }
                 DateTime d2 = System.DateTime.Now;
                 Console.WriteLine(d2);
-
             }
         }
 
@@ -640,24 +629,26 @@ namespace WindowsFormsApplication1
                 string pdfPath = OpFile.FileName;
                 var wb = new XLWorkbook(pdfPath);
                 var ws = wb.Worksheet(1);
-               
+                
+                ExcelUtil eu = new ExcelUtil();
+                eu.getExcelSheetTextDemo(ws);
                 // Define a range with the data
-                var firstTableCell = ws.FirstCellUsed();
-                var lastTableCell = ws.LastCellUsed();
-                var rngData = ws.Range(firstTableCell.Address, lastTableCell.Address);
-                var lastCellAddress = ws.LastCellUsed().Address;
+                //var firstTableCell = ws.FirstCellUsed();
+                //var lastTableCell = ws.LastCellUsed();
+                //var rngData = ws.Range(firstTableCell.Address, lastTableCell.Address);
+                //var lastCellAddress = ws.LastCellUsed().Address;
                 
                 // Copy the table to another worksheet
                 //var wsCopy = wb.Worksheets.Add("Contacts Copy2");
-                var wsCopy = wb.Worksheet(2);
-                wsCopy.Style.Alignment = ws.Style.Alignment;
-                wsCopy.Style.Border = ws.Style.Border;
-                wsCopy.Style.Font = ws.Style.Font;
-                wsCopy.Style.Fill = ws.Style.Fill;
-                wsCopy.Style.NumberFormat = ws.Style.NumberFormat;
-                wsCopy.Cell(7, 1).Value = rngData;
+                //var wsCopy = wb.Worksheet(2);
+                //wsCopy.Style.Alignment = ws.Style.Alignment;
+                //wsCopy.Style.Border = ws.Style.Border;
+                //wsCopy.Style.Font = ws.Style.Font;
+                //wsCopy.Style.Fill = ws.Style.Fill;
+                //wsCopy.Style.NumberFormat = ws.Style.NumberFormat;
+                //wsCopy.Cell(7, 1).Value = rngData;
                 //wsCopy.rows
-                wb.SaveAs("Copying123Ranges.xlsx", true);
+                //wb.SaveAs("Copying123Ranges.xlsx", true);
             }
 
 
@@ -714,17 +705,10 @@ namespace WindowsFormsApplication1
 
         private void button10_Click(object sender, EventArgs e)
         {
-            for (int a = 0; a < 5; a++)
-            {
-                Task.Factory.StartNew(() =>
-                {
-                    for(int i=0;i<100;i++){
-                        Console.WriteLine(a + "-" + i);
-                    }
-                });
-            }
-            Test2Form t = new Test2Form();
-            t.ShowDialog();
+            Console.WriteLine("10.................");
+            //t.Dispose();
+            //pdftoExcel.ClearSourceFiles();
+            
             //double rate = Convert.ToDouble(100) / Convert.ToDouble(105);
            // OpenFileDialog OpFile = new OpenFileDialog();
             //if (OpFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -733,6 +717,7 @@ namespace WindowsFormsApplication1
                 //ExcelUtil.TestExcel(path);
             //}
             //Console.WriteLine(rate);
+            
 
         }
 
@@ -752,20 +737,31 @@ namespace WindowsFormsApplication1
             
             foreach(String str in list)
             {
-                ThreadPool.QueueUserWorkItem(handlePdf, str);
+                //ParameterizedThreadStart threadStart = new ParameterizedThreadStart(handlePdf);
+                //Thread thread = new Thread(threadStart);
+                //thread.Start(str);
+                Console.WriteLine("start sleep...............");
+                Thread.Sleep(5000);
+                Console.WriteLine("start end...............");
+                //thread.Abort();
+                //thread.Interrupt();
+                //
+                Console.WriteLine("kill ...............");
             }
         }
 
-        public void handlePdf(Object obj) 
+        public void handlePdf() 
         {
-            String pdf = (String)obj;
+            String pdf = @"C:\Users\Administrator\Desktop\9\21\1203997734.PDF";
             Console.WriteLine(pdf);
             String xls = Path.ChangeExtension(pdf,"xlsx");
             Console.WriteLine(xls);
             SolidConvertUtil solid = new SolidConvertUtil();
+            pdftoExcel = new PdfToExcelConverter();
             try
             {
-                solid.pdfConvertExcel(pdf, xls);
+                DateTime d = DateTime.Now;
+                solid.pdfConvertExcel(pdf, xls, pdftoExcel);
             }
             catch (Exception ex) {
                 Console.WriteLine(ex.Message);
@@ -819,10 +815,14 @@ namespace WindowsFormsApplication1
 
             foreach (String str in list)
             {
-                Task.Factory.StartNew(() =>
-                {
-                    handlePdf(str);
-                });
+                t = Task.Factory.StartNew(handlePdf, cancelTokenSource.Token);
+                
+                Console.WriteLine("等待前...");
+                Thread.Sleep(3000);
+                cancelTokenSource.Cancel();
+                
+                //t.Wait();
+                Console.WriteLine("等待后...");
             }
         }
 
@@ -840,9 +840,9 @@ namespace WindowsFormsApplication1
             }
             foreach (String path in list)
             {
-                ParameterizedThreadStart threadStart = new ParameterizedThreadStart(handlePdf);
-                Thread thread = new Thread(threadStart);
-                thread.Start(path);
+                //ParameterizedThreadStart threadStart = new ParameterizedThreadStart(handlePdf);
+                //Thread thread = new Thread(threadStart);
+                //thread.Start(path);
             }
            
         }

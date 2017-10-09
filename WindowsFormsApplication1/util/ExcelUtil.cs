@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Spire.Xls;
+
 using ClosedXML.Excel;
 using System.Text.RegularExpressions;
 using WindowsFormsApplication1.entity;
@@ -69,85 +69,99 @@ namespace WindowsFormsApplication1.util
 
         public List<IXLWorksheet> getExcelSheetList(string excelFileName)
         {
-            List<IXLWorksheet> sheetList = new List<IXLWorksheet>();
-            // 根据excel的sheet生成txt
-            var wbSource = new XLWorkbook(excelFileName);
-            int size = wbSource.Worksheets.Count;
-            for (int i = 1; i <= size; i++)
+            try
             {
-                sheetList.Add(wbSource.Worksheet(i));
+                List<IXLWorksheet> sheetList = new List<IXLWorksheet>();
+                // 根据excel的sheet生成txt
+                var wbSource = new XLWorkbook(excelFileName);
+                int size = wbSource.Worksheets.Count;
+                for (int i = 1; i <= size; i++)
+                {
+                    sheetList.Add(wbSource.Worksheet(i));
+                }
+                return sheetList;
             }
-            return sheetList;
+            catch (Exception ex) {
+                throw ex;
+            }
         }
 
         public String getExcelSheetText(IXLWorksheet sheet)
         {
-            var rows = sheet.RowsUsed();
-            StringBuilder text = new StringBuilder("");
-            foreach (var row in rows)
+            try
             {
-                //遍历所有的Cells
-                foreach (var cell in row.Cells())
+                var rows = sheet.RowsUsed();
+                StringBuilder text = new StringBuilder("");
+                foreach (var row in rows)
                 {
-                    if (cell.DataType == XLCellValues.DateTime)
-                    {
-                        String val = cell.RichText.ToString().Replace("@", "").Replace(";","");
-                        text.Append(val + " ");
-                    }
-                    else
+                    //遍历所有的Cells
+                    foreach (var cell in row.Cells())
                     {
                         text.Append(cell.RichText.ToString() + " ");
                     }
-
                 }
+                return Regex.Replace(text.ToString(), "\\s+", " ");
             }
-           return Regex.Replace(text.ToString(), "\\s+", " ");
+            catch (Exception ex) {
+                throw ex;
+            }
         }
 
-        public void createExcelBySheet(IXLWorksheet sheet, String excelPath)
+        public void createExcelBySheet(IXLWorksheet sheet, String excelPath) 
         {
-            // 根据excel的sheet生成excel
-            var wb = new XLWorkbook();
-            wb.Worksheets.Add("Sheet1");
-            wb.SaveAs(excelPath);
-            sheet.CopyTo(wb, "table1", 1);
-            wb.SaveAs(excelPath, true);
+            try
+            {
+                // 根据excel的sheet生成excel
+                var wb = new XLWorkbook();
+                wb.Worksheets.Add("Sheet1");
+                wb.SaveAs(excelPath);
+                sheet.CopyTo(wb, "table1", 1);
+                wb.SaveAs(excelPath, true);
+            }
+            catch (Exception ex) {
+                throw ex; 
+            }
         }
 
         public void createExcelBySheetList(List<IXLWorksheet> sheetList,String excelPath,int startIndex,int endIndex)
         {
-            var newWork = new XLWorkbook();
-            newWork.Worksheets.Add("table1");
-            var newSheet = newWork.Worksheet(1);
-            int local = 1;
-            for (int i = startIndex; i <= endIndex; i++) 
-            {
-                var ws = sheetList[i];
-                var firstTableCell = ws.FirstCell();
-                var lastTableCell = ws.LastCellUsed();
+            try{
+                var newWork = new XLWorkbook();
+                newWork.Worksheets.Add("table1");
+                var newSheet = newWork.Worksheet(1);
+                int local = 1;
+                for (int i = startIndex; i <= endIndex; i++) 
+                {
+                    var ws = sheetList[i];
+                    var firstTableCell = ws.FirstCell();
+                    var lastTableCell = ws.LastCellUsed();
                 
-                var rngData = ws.Range(firstTableCell.Address, lastTableCell.Address);
-                //设置样式
-                newSheet.Style.Alignment = ws.Style.Alignment;
-                newSheet.Style.Border = ws.Style.Border;
-                newSheet.Style.Font = ws.Style.Font;
-                newSheet.Style.Fill = ws.Style.Fill;
-                newSheet.Style.NumberFormat = ws.Style.NumberFormat;
+                    var rngData = ws.Range(firstTableCell.Address, lastTableCell.Address);
+                    //设置样式
+                    newSheet.Style.Alignment = ws.Style.Alignment;
+                    newSheet.Style.Border = ws.Style.Border;
+                    newSheet.Style.Font = ws.Style.Font;
+                    newSheet.Style.Fill = ws.Style.Fill;
+                    newSheet.Style.NumberFormat = ws.Style.NumberFormat;
                
-                int num = ws.LastRowUsed().RowNumber();
-                newSheet.Cell(local, 1).Value = rngData;
-                //设置宽度和列的高度
-                for (int j = 1; j <= ws.LastColumnUsed().ColumnNumber(); j++) 
-                {
-                    newSheet.Column(j).Width = ws.Column(j).Width;
+                    int num = ws.LastRowUsed().RowNumber();
+                    newSheet.Cell(local, 1).Value = rngData;
+                    //设置宽度和列的高度
+                    for (int j = 1; j <= ws.LastColumnUsed().ColumnNumber(); j++) 
+                    {
+                        newSheet.Column(j).Width = ws.Column(j).Width;
+                    }
+                    for (int j = local; j < ws.LastRowUsed().RowNumber(); j++)
+                    {
+                        newSheet.Row(j).Height = ws.Row(j).Height;
+                    }
+                    local += num;
                 }
-                for (int j = local; j < ws.LastRowUsed().RowNumber(); j++)
-                {
-                    newSheet.Row(j).Height = ws.Row(j).Height;
-                }
-                local += num;
+                newWork.SaveAs(excelPath,true);
             }
-            newWork.SaveAs(excelPath,true);
+            catch (Exception ex) {
+                throw ex; 
+            }
         }
 
         public static void TestExcel(string excelFileName)
@@ -183,6 +197,41 @@ namespace WindowsFormsApplication1.util
 
                     }
                 }
+        }
+
+        public String getExcelSheetTextDemo(IXLWorksheet sheet)
+        {
+            try
+            {
+                var rows = sheet.RowsUsed();
+                StringBuilder text = new StringBuilder("");
+                foreach (var row in rows)
+                {
+                    //遍历所有的Cells
+                    foreach (var cell in row.Cells())
+                    {
+                        Console.WriteLine(cell.Value + " " + cell.RichText);
+                        //cell.SetDataType(XLCellValues.Text);
+                        //Console.WriteLine(cell.Value+" "+cell.RichText);
+                        if (cell.DataType == XLCellValues.DateTime)
+                        {
+                            String val = cell.RichText.ToString();
+                            text.Append(val + " ");
+                        }
+                        else
+                        {
+                            text.Append(cell.RichText.ToString() + " ");
+                        }
+
+                    }
+                }
+                Console.WriteLine(text);
+                return Regex.Replace(text.ToString(), "\\s+", " ");
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
     }

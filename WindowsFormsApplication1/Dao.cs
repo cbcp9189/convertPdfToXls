@@ -1,5 +1,4 @@
-﻿using FluentFTP;
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -88,46 +87,52 @@ namespace WindowsFormsApplication1
             }
             String sortExcelPath = tb.excelPath.Replace("W:/excel/", "");
 
-            StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,version,content,across_page,flag) VALUES(");
-            sql.Append(aey.doc_id);
-            sql.Append(", ");
-            sql.Append(aey.doc_type);
-            sql.Append(",");
-            sql.Append(aey.id);
-            sql.Append(",'");
-            sql.Append(sortExcelPath);
-            sql.Append("',");
-            sql.Append(tb.pageNumber);
-            sql.Append(",");
-            sql.Append(tb.totalPage);
-            sql.Append(",");
-            sql.Append(tb.left);
-            sql.Append(",");
-            sql.Append(tb.top);
-            sql.Append(",");
-            sql.Append(tb.right);
-            sql.Append(",");
-            sql.Append(tb.bottom);
-            sql.Append(",");
-            sql.Append(DateTimeUtil.GetTimeStamp());
-            sql.Append(",");
-            sql.Append(DateTimeUtil.GetTimeStampWithMs());
-            sql.Append(",");
-            sql.Append("@content");
-            sql.Append(",");
-            sql.Append(tb.pages);
-            sql.Append(",");
-            sql.Append(tb.flag);
-            sql.Append(")");
-            //Console.WriteLine(sql.ToString());
-            MySqlConnection con = getmysqlcon();
-            con.Open();
-            MySqlCommand mysqlcom = con.CreateCommand();
-            mysqlcom.Parameters.AddWithValue("@content", tb.content);
-            mysqlcom.CommandText = sql.ToString();
-            mysqlcom.ExecuteNonQuery();
-            con.Close();
-            Console.WriteLine("insert and update end.....");
+            try
+            {
+                StringBuilder sql = new StringBuilder("INSERT INTO pdf_to_excel(docid,doctype,pdf_stream_id,excel_path,page_number,total_page,left_x,top_y,right_x,bottom_y,create_time,version,content,across_page,flag) VALUES(");
+                sql.Append(aey.doc_id);
+                sql.Append(", ");
+                sql.Append(aey.doc_type);
+                sql.Append(",");
+                sql.Append(aey.id);
+                sql.Append(",'");
+                sql.Append(sortExcelPath);
+                sql.Append("',");
+                sql.Append(tb.pageNumber);
+                sql.Append(",");
+                sql.Append(tb.totalPage);
+                sql.Append(",");
+                sql.Append(tb.left);
+                sql.Append(",");
+                sql.Append(tb.top);
+                sql.Append(",");
+                sql.Append(tb.right);
+                sql.Append(",");
+                sql.Append(tb.bottom);
+                sql.Append(",");
+                sql.Append(DateTimeUtil.GetTimeStamp());
+                sql.Append(",");
+                sql.Append(DateTimeUtil.GetTimeStampWithMs());
+                sql.Append(",");
+                sql.Append("@content");
+                sql.Append(",");
+                sql.Append(tb.pages);
+                sql.Append(",");
+                sql.Append(tb.flag);
+                sql.Append(")");
+                //Console.WriteLine(sql.ToString());
+                MySqlConnection con = getmysqlcon();
+                con.Open();
+                MySqlCommand mysqlcom = con.CreateCommand();
+                mysqlcom.Parameters.AddWithValue("@content", tb.content);
+                mysqlcom.CommandText = sql.ToString();
+                mysqlcom.ExecuteNonQuery();
+                con.Close();
+                Console.WriteLine("insert and update end.....");
+            }
+            catch (Exception ex) {
+                throw ex;
+            }
         }
 
         public void updatePdfStreamInfo(AnnouncementEntity aey,int status)
@@ -375,11 +380,42 @@ namespace WindowsFormsApplication1
                 mysqlcom.ExecuteNonQuery();
                 con.Close();
             }
-            catch (Exception ex) { 
-                
-            
+            catch (Exception ex) {
+                throw ex;
             }
             Console.WriteLine("insert end.....");
+        }
+
+        //根据pdf_stream_id删除pdfExelInfo
+        public void deletePdfExcelInfo(long pdf_steam_id)
+        {
+            //更新pdf_stream表中的excel_flag和version字段
+            StringBuilder deleteSql = new StringBuilder("delete from pdf_to_excel where pdf_stream_id = ");
+            deleteSql.Append(pdf_steam_id);
+            MySqlConnection con = getmysqlcon();
+            con.Open();
+            MySqlCommand mysqlcom1 = new MySqlCommand(deleteSql.ToString(), con);
+            mysqlcom1.ExecuteNonQuery();
+            con.Close();
+            LogHelper.WriteLog(typeof(Dao), deleteSql.ToString());
+            Console.WriteLine("delete end....." + deleteSql);
+        }
+
+        //根据doc_id删除pdftxt
+        public void deletePdfTxtInfo(long doc_id,int doc_type)
+        {
+            //更新pdf_stream表中的excel_flag和version字段
+            StringBuilder deleteSql = new StringBuilder("delete from pdf_txt where docid = ");
+            deleteSql.Append(doc_id);
+            deleteSql.Append(" and doctype = ");
+            deleteSql.Append(doc_type);
+            MySqlConnection con = getmysqlcon();
+            con.Open();
+            MySqlCommand mysqlcom1 = new MySqlCommand(deleteSql.ToString(), con);
+            mysqlcom1.ExecuteNonQuery();
+            con.Close();
+            LogHelper.WriteLog(typeof(Dao), deleteSql.ToString());
+            Console.WriteLine("delete end....." + deleteSql);
         }
     }
 }

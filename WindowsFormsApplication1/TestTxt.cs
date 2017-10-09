@@ -14,11 +14,13 @@ using SolidFramework.Model.Plumbing;
 
 using System.Threading.Tasks;
 using WindowsFormsApplication1.entity;
+using WindowsFormsApplication1.util;
 
 namespace WindowsFormsApplication1
 {
     class TestTxt
     {
+
         internal static List<TableEntity> SolidModelLayout(string pdfFile, string outTxtFile)
         {
             List<TableEntity> tbList = new List<TableEntity>();
@@ -30,12 +32,19 @@ namespace WindowsFormsApplication1
             options.ConvertMode = ConvertMode.Document;
             options.ReconstructionMode = ReconstructionMode.Flowing;
             options.ExposeTargetDocumentPagination = true;
-
-            using (CoreModel model = CoreModel.Create(pdfFile, options))
+            try
             {
-                LayoutDocument layoutDoc = model.GetLayout();
-                tbList = TraceToTxt1(layoutDoc, outTxtFile);
-                model.Dispose();
+                using (CoreModel model = CoreModel.Create(pdfFile, options))
+                {
+                    LayoutDocument layoutDoc = model.GetLayout();
+                    tbList = TraceToTxt1(layoutDoc, outTxtFile);
+                    model.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogHelper.WriteLog(typeof(TestTxt), "error-SolidModelLayout:"+ex.Message);
+                return null;    
             }
             return tbList;
         }
@@ -153,6 +162,7 @@ namespace WindowsFormsApplication1
                 }
             }
             catch (Exception ex) {
+                LogHelper.WriteLog(typeof(PdfConvertExcelForm), "error-解析txt异常:"+ex.Message);
                 return null;
             }
         }

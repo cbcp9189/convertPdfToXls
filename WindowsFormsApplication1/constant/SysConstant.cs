@@ -28,5 +28,15 @@ namespace WindowsFormsApplication1.constant
 
         public static int SUCCESS = 1;
 
+        public static int MAX_PROCESS = 1000;
+
+
+        //处理标识
+        public static int BIG_FILE_FLAG = -21;
+
+        public static int ERROR_STR_FLAG = -13;  //解析的日期中包含  @;
+
+        public static String DATE_ERROR_STR = ";@"; 
+
     }
 }

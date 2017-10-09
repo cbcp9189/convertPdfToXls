@@ -19,7 +19,7 @@ namespace WindowsFormsApplication1.entity
        
         public int content_type;  //内容类型
         public int content_id;   //内容id
-        public String content;  //内容
+        public String content = "";  //内容
         public long pdf_id;    //pdfid
         public int pages = 0;     //跨的页数
         public String excelPath;  //excel路径
