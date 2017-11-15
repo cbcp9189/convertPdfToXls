@@ -28,6 +28,8 @@ namespace WindowsFormsApplication1.constant
 
         public static int SUCCESS = 1;
 
+        public static int NO_DEAL = 14;
+
         public static int MAX_PROCESS = 1000;
 
 
@@ -36,7 +38,11 @@ namespace WindowsFormsApplication1.constant
 
         public static int ERROR_STR_FLAG = -13;  //解析的日期中包含  @;
 
-        public static String DATE_ERROR_STR = ";@"; 
+        public static String DATE_ERROR_STR = ";@";
+
+        public static String PROGRAMNAME = "excel";  //程序名称
+
+        public static int DEL = 1;
 
     }
 }

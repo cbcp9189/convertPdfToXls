@@ -750,22 +750,23 @@ namespace WindowsFormsApplication1
             }
         }
 
-        public void handlePdf() 
+        public void handlePdf(String pdf) 
         {
-            String pdf = @"C:\Users\Administrator\Desktop\9\21\1203997734.PDF";
+            // = @"C:\Users\Administrator\Desktop\9\21\1203997734.PDF";
             Console.WriteLine(pdf);
             String xls = Path.ChangeExtension(pdf,"xlsx");
             Console.WriteLine(xls);
             SolidConvertUtil solid = new SolidConvertUtil();
-            pdftoExcel = new PdfToExcelConverter();
+            
             try
             {
                 DateTime d = DateTime.Now;
-                solid.pdfConvertExcel(pdf, xls, pdftoExcel);
+                Console.WriteLine(solid.pdfConvertExcel2(pdf, xls));
             }
             catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
+            Console.WriteLine("end......");
             
         }
 
@@ -809,21 +810,22 @@ namespace WindowsFormsApplication1
             dlg.Multiselect = true;
             if (dlg.ShowDialog() == DialogResult.OK)
             {
-                for (int i = 0; i < dlg.FileNames.Length; i++)
-                    list.Add(dlg.FileNames[i]);
-            }
+                try {
+                    for (int i = 0; i < dlg.FileNames.Length; i++)
+                    {
+                        handlePdf(dlg.FileNames[i]);
+                        TestTxt.SolidModelLayout(dlg.FileNames[i], Path.ChangeExtension(dlg.FileNames[i], "txt"));
+                    }
 
-            foreach (String str in list)
-            {
-                t = Task.Factory.StartNew(handlePdf, cancelTokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
                 
-                Console.WriteLine("等待前...");
-                Thread.Sleep(3000);
-                cancelTokenSource.Cancel();
-                
-                //t.Wait();
-                Console.WriteLine("等待后...");
             }
+            
+            
         }
 
         private void button14_Click(object sender, EventArgs e)

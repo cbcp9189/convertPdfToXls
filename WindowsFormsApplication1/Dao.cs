@@ -17,8 +17,7 @@ namespace WindowsFormsApplication1
     {
         public MySqlConnection getmysqlcon()
         {
-            string M_str_sqlcon = "server=10.9.23.110;user id=root;password=hoboom;database=scrapy"; //根据自己的设置
-            //string M_str_sqlcon = "server=106.75.116.2;user id=root;password=hoboom;database=hooboom"; //根据自己的设置
+            string M_str_sqlcon = "server=10.9.23.110;user id=root;password=hoboom;database=scrapy"; // 110-227测试服务器
             return new MySqlConnection(M_str_sqlcon);
         }
 
@@ -121,6 +120,7 @@ namespace WindowsFormsApplication1
                 sql.Append(tb.flag);
                 sql.Append(")");
                 //Console.WriteLine(sql.ToString());
+                //LogHelper.WriteLog(typeof(Dao), "insert sql-" + sql.ToString());
                 MySqlConnection con = getmysqlcon();
                 con.Open();
                 MySqlCommand mysqlcom = con.CreateCommand();

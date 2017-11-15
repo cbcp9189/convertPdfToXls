@@ -102,9 +102,9 @@
             // 
             this.button3.Location = new System.Drawing.Point(16, 283);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(75, 69);
+            this.button3.Size = new System.Drawing.Size(118, 69);
             this.button3.TabIndex = 13;
-            this.button3.Text = "start";
+            this.button3.Text = "startTestPipeLine";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 

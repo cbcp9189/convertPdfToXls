@@ -111,6 +111,7 @@ namespace WindowsFormsApplication1
                     String xlsFile = Path.ChangeExtension(pdfPath, "xlsx");
                     SolidConvertUtil solidConvertUtil = new SolidConvertUtil();
                     ConversionStatus result = solidConvertUtil.pdfConvertExcel2(pdfPath,xlsFile);
+                    Console.WriteLine(result+"...status");
                     if (result == ConversionStatus.Success)
                     {
                         Boolean issaveSuccess = true;
@@ -309,7 +310,7 @@ namespace WindowsFormsApplication1
 
         public TxtEntity getTxtEntity(TableEntity te, long docid, int doctype, Boolean is_tb_content,int type)
         { 
-        TxtEntity txt = new TxtEntity();
+            TxtEntity txt = new TxtEntity();
             txt.docid = docid;
             txt.doctype = doctype;
             txt.content = te.content;
@@ -596,20 +597,6 @@ namespace WindowsFormsApplication1
                     strMessage = ex.Message;
                 }
 
-                SolidFramework.Forms.SolidMessageBox messageDialog = new SolidFramework.Forms.SolidMessageBox(this);
-                messageDialog.Content = strMessage;
-                messageDialog.Text = "Error";
-                messageDialog.MessageIcon = MessageBoxIcon.Error;
-                messageDialog.Buttons = MessageBoxButtons.OK;
-                messageDialog.ShowIcon = true;
-                messageDialog.Execute();
-
-                this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-                processor.JobProgressEvent -= processor_JobProgressEvent;
-                processor.JobCompletedEvent -= processor_JobCompletedEvent;
-                processor.Close();
-                processor.Dispose();
-                this.Close();
             }
         }
 
@@ -623,189 +610,195 @@ namespace WindowsFormsApplication1
             {
                 if (e.JobEnvelope.Status == JobStatus.Success)
                 {
-                            string convertedTemp = e.JobEnvelope.OutputPaths[0];
-                            string pdfPath = e.JobEnvelope.SourcePath;
-                            string ext = Path.GetExtension(convertedTemp);
-                            string xlsFile = PathUtil.getAbsolutExcelPath(steam.pdf_path, steam.doc_type);
-                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "xlsFile:" + xlsFile);
-                        
-                            SolidFramework.Plumbing.Utilities.FileCopy(convertedTemp, xlsFile, true);
-                            Boolean issaveSuccess = true;
-                            //生成成功
-                            if (File.Exists(xlsFile))
+                    string convertedTemp = e.JobEnvelope.OutputPaths[0];
+                    string pdfPath = e.JobEnvelope.SourcePath;
+                    string ext = Path.GetExtension(convertedTemp);
+                    string xlsFile = PathUtil.getAbsolutExcelPath(steam.pdf_path, steam.doc_type);
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "xlsFile:" + xlsFile);
+
+                    SolidFramework.Plumbing.Utilities.FileCopy(convertedTemp, xlsFile, true);
+                    Boolean issaveSuccess = true;
+                    //生成成功
+                    if (File.Exists(xlsFile))
+                    {
+
+                        String txtPath = Path.ChangeExtension(xlsFile, ".txt");
+                        List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
+                        if (tbPostionList == null || tbPostionList.Count == 0)
+                        {
+                            steam.excel_flag = -5;  //生成txt出错
+                            updatePdfStream(steam);
+                            return;
+                        }
+                        //对txt中的table进行合并
+                        List<TableEntity> mergeTableList = mergeTable(tbPostionList);
+
+                        //获取多个sheet的文本
+                        ExcelUtil eu = new ExcelUtil();
+                        List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
+                        int index = 0;
+                        for (int i = 0; i < mergeTableList.Count; i++)
+                        {
+                            TableEntity tableEntity = mergeTableList[i];
+                            if (tableEntity == null)
                             {
-                            
-                                String txtPath = Path.ChangeExtension(xlsFile, ".txt");
-                                List<TableEntity> tbPostionList = TestTxt.SolidModelLayout(pdfPath, txtPath);
-                                if (tbPostionList == null || tbPostionList.Count == 0)
+                                continue;
+                            }
+                            int txtLen = tableEntity.content.Replace(" ", "").Replace("\n", "").Length; //txt生成的表格文本长度
+                            String excelTxt = "";
+                            if (index < sheetList.Count)
+                            {
+                                excelTxt = eu.getExcelSheetText(sheetList[index]);
+                            }
+                            else
+                            {
+                                //报错
+                                tableEntity.flag = SysConstant.ERROR;
+                                tableEntity.excelPath = "";
+                                break;
+                            }
+                            int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
+                            String excelContent = excelTxt.Replace("\n", "");
+                            if (checkContentErrorStr(excelContent))
+                            {
+                                steam.excel_flag = SysConstant.ERROR_STR_FLAG;  //生成txt出错
+                                updatePdfStream(steam);
+                                return;
+                            }
+                            double rate = (double)txtLen / excelTxtLen;
+                            rate = Math.Round(rate, 3);
+                            string singleExcelPath = Path.ChangeExtension(xlsFile, index + ".xlsx");
+                            if (rate < (1 + SysConstant.RANGE) && rate > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                            {
+                                eu.createExcelBySheet(sheetList[index], singleExcelPath);
+                                tableEntity.excelPath = singleExcelPath;
+                                tableEntity.flag = SysConstant.SUCCESS;
+                                tableEntity.content = excelContent;
+                            }
+                            else if (rate <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                            {
+                                //报错
+                                tableEntity.flag = SysConstant.ERROR;
+                                tableEntity.excelPath = "";
+                                break;
+                            }
+                            else if (rate >= (1 + SysConstant.RANGE))  //文本长度比例大于等于105%
+                            {
+                                int totalLen = excelTxtLen;
+                                int initIndex = index;
+                                Boolean isError = false;
+                                while (true)
                                 {
-                                    steam.excel_flag = -5;  //生成txt出错
-                                    updatePdfStream(steam);
-                                    return;
-                                }
-                                //对txt中的table进行合并
-                                List<TableEntity> mergeTableList = mergeTable(tbPostionList);
-                            
-                                //获取多个sheet的文本
-                                ExcelUtil eu = new ExcelUtil();
-                                List<IXLWorksheet> sheetList = eu.getExcelSheetList(xlsFile);
-                                int index = 0;
-                                for (int i = 0; i < mergeTableList.Count; i++)
-                                {
-                                    TableEntity tableEntity = mergeTableList[i];
-                                    if (tableEntity == null)
-                                    {
-                                        continue;
-                                    }
-                                    int txtLen = tableEntity.content.Replace(" ", "").Replace("\n", "").Length; //txt生成的表格文本长度
-                                    String excelTxt = "";
+                                    //合并当前sheet跟下一个sheet
+                                    index++;
                                     if (index < sheetList.Count)
                                     {
                                         excelTxt = eu.getExcelSheetText(sheetList[index]);
                                     }
-                                    else 
+                                    else
                                     {
                                         //报错
                                         tableEntity.flag = SysConstant.ERROR;
                                         tableEntity.excelPath = "";
+                                        isError = true;
                                         break;
                                     }
-                                    int excelTxtLen = excelTxt.Replace(" ", "").Replace("\n", "").Length;  //excel生成的文本长度
-                                    String excelContent = excelTxt.Replace("\n", "");
-                                    if (checkContentErrorStr(excelContent)) {
-                                        steam.excel_flag = SysConstant.ERROR_STR_FLAG;  //生成txt出错
+                                    int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
+                                    excelContent += eu.getExcelSheetText(sheetList[index]).Replace("\n", "");
+                                    if (checkContentErrorStr(excelContent))
+                                    {
+                                        steam.excel_flag = SysConstant.ERROR_STR_FLAG;  //生成txt中包含@;
                                         updatePdfStream(steam);
                                         return;
                                     }
-                                    double rate = (double)txtLen / excelTxtLen;
-                                    rate = Math.Round(rate, 3);
-                                    string singleExcelPath = Path.ChangeExtension(xlsFile, index + ".xlsx");
-                                    if (rate < (1 + SysConstant.RANGE) && rate > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
+                                    totalLen += secondSheetTxtLen;
+                                    double rate1 = (double)txtLen / totalLen;
+                                    rate1 = Math.Round(rate1, 3);
+                                    if (rate1 < (1 + SysConstant.RANGE) && rate1 > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
                                     {
-                                        eu.createExcelBySheet(sheetList[index], singleExcelPath);
-                                        tableEntity.excelPath = singleExcelPath;
+                                        //合并excel
+                                        eu.createExcelBySheetList(sheetList, singleExcelPath, initIndex, index);
                                         tableEntity.flag = SysConstant.SUCCESS;
+                                        tableEntity.excelPath = singleExcelPath;
                                         tableEntity.content = excelContent;
+                                        break;
                                     }
-                                    else if (rate <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
+                                    else if (rate1 <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
                                     {
                                         //报错
                                         tableEntity.flag = SysConstant.ERROR;
                                         tableEntity.excelPath = "";
-                                        break;
-                                    }
-                                    else if (rate >= (1 + SysConstant.RANGE))  //文本长度比例大于等于105%
-                                    {
-                                        int totalLen = excelTxtLen;
-                                        int initIndex = index;
-                                        Boolean isError = false;
-                                        while (true)
-                                        {
-                                            //合并当前sheet跟下一个sheet
-                                            index++;
-                                            if (index < sheetList.Count)
-                                            {
-                                                excelTxt = eu.getExcelSheetText(sheetList[index]);
-                                            }
-                                            else
-                                            {
-                                                //报错
-                                                tableEntity.flag = SysConstant.ERROR;
-                                                tableEntity.excelPath = "";
-                                                isError = true;
-                                                break;
-                                            }
-                                            int secondSheetTxtLen = eu.getExcelSheetText(sheetList[index]).Replace(" ", "").Replace("\n", "").Length;
-                                            excelContent += eu.getExcelSheetText(sheetList[index]).Replace("\n", "");
-                                            if (checkContentErrorStr(excelContent))
-                                            {
-                                                steam.excel_flag = SysConstant.ERROR_STR_FLAG;  //生成txt中包含@;
-                                                updatePdfStream(steam);
-                                                return;
-                                            }
-                                            totalLen += secondSheetTxtLen;
-                                            double rate1 = (double)txtLen / totalLen;
-                                            rate1 = Math.Round(rate1, 3);
-                                            if (rate1 < (1 + SysConstant.RANGE) && rate1 > (1 - SysConstant.RANGE)) //文本长度比例在 95%和105%之间
-                                            {
-                                                //合并excel
-                                                eu.createExcelBySheetList(sheetList, singleExcelPath, initIndex, index);
-                                                tableEntity.flag = SysConstant.SUCCESS;
-                                                tableEntity.excelPath = singleExcelPath;
-                                                tableEntity.content = excelContent;
-                                                break;
-                                            }
-                                            else if (rate1 <= (1 - SysConstant.RANGE))  //文本长度比例小于等于95%
-                                            {
-                                                //报错
-                                                tableEntity.flag = SysConstant.ERROR;
-                                                tableEntity.excelPath = "";
-                                                isError = true;
-                                                break;
-                                            }
-                                        }
-                                        if (isError)
-                                        {
-                                            break;
-                                        }
-                                    }
-                                    index++;
-                                }
-                                foreach (TableEntity tableEntity in mergeTableList)
-                                {
-                                    if (tableEntity.flag == SysConstant.ERROR)
-                                    {
-                                        issaveSuccess = false;
+                                        isError = true;
                                         break;
                                     }
                                 }
-                                if (issaveSuccess)
+                                if (isError)
                                 {
-                                        foreach (TableEntity tableEntity in mergeTableList)
-                                        {
-                                            dao.savePdfToExcelInfo(steam, tableEntity);
-                                        }
+                                    break;
+                                }
+                            }
+                            index++;
+                        }
+                        foreach (TableEntity tableEntity in mergeTableList)
+                        {
+                            if (tableEntity.flag == SysConstant.ERROR)
+                            {
+                                issaveSuccess = false;
+                                break;
+                            }
+                        }
+                        if (issaveSuccess)
+                        {
+                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "list-"+mergeTableList.Count());
+                            foreach (TableEntity tableEntity in mergeTableList)
+                            {
+                                dao.savePdfToExcelInfo(steam, tableEntity);
+                            }
 
-                                        //将txt中的列提取出来
-                                        List<TxtEntity> paragraphList = getParagraph(tbPostionList, steam.doc_id, steam.doc_type);
-                                        foreach (TxtEntity txt in paragraphList)
-                                        {
-                                            dao.savePdfTxtInfo(txt);
-                                        }
-                                        steam.excel_flag = 1;
-                                        if (!updatePdfStream(steam))
-                                        {
-                                            deleteErrorData(steam);
-                                        }
-                                        else 
-                                        {
-                                            LogHelper.WriteLog(typeof(PdfConvertExcelForm), "生成成功:" + steam.id);
-                                        }
-                                        
-                                }
-                                else
-                                {
-                                
-                                    steam.excel_flag = -10;  //比较错误
-                                    if (!updatePdfStream(steam))
-                                    {
-                                        deleteErrorData(steam);
-                                    }
-                                }
+                            //将txt中的列提取出来
+                            List<TxtEntity> paragraphList = getParagraph(tbPostionList, steam.doc_id, steam.doc_type);
+                            foreach (TxtEntity txt in paragraphList)
+                            {
+                                dao.savePdfTxtInfo(txt);
+                            }
+                            steam.excel_flag = 1;
+                            if (!updatePdfStream(steam))
+                            {
+                                deleteErrorData(steam);
                             }
                             else
                             {
-                                steam.excel_flag = -11;  //文件未找到
-                                if (!updatePdfStream(steam))
-                                {
-                                    deleteErrorData(steam);
-                                }
+                                LogHelper.WriteLog(typeof(PdfConvertExcelForm), "生成成功:" + steam.id);
                             }
-                
+
+                        }
+                        else
+                        {
+
+                            steam.excel_flag = -10;  //比较错误
+                            if (!updatePdfStream(steam))
+                            {
+                                deleteErrorData(steam);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        steam.excel_flag = -11;  //文件未找到
+                        if (!updatePdfStream(steam))
+                        {
+                            deleteErrorData(steam);
+                        }
+                    }
+
                 }
                 else { //解析失败
                     //将pdf_stream表excel_flag标识改为 -1
-                    steam.excel_flag = -(int)e.JobEnvelope.Status;
+                    int convertResult = (int)e.JobEnvelope.Status;
+                    if(convertResult>=100){
+                        convertResult = -convertResult/10;
+                    }
+                    steam.excel_flag = convertResult;
                     if (!updatePdfStream(steam)) {
                         deleteErrorData(steam);
                     }
@@ -980,10 +973,36 @@ namespace WindowsFormsApplication1
         public void initData(List<PdfStream> pdfStreamList)
         {
             foreach(PdfStream stream in pdfStreamList){
-                JobOrder order = new JobOrder();
-                order.Filename = stream.pdf_path;
-                order.stream = stream;
-                orders.Add(order);
+                if (stream.delFlag == SysConstant.DEL)  //如果标识等于删除的话
+                {
+                    dao.deletePdfExcelInfo(stream.id);
+                    dao.deletePdfTxtInfo(stream.doc_id,stream.doc_type);
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "delete excel and txt-"+stream.id);
+                    //返回成功标识
+                    stream.excel_flag = SysConstant.SUCCESS;
+                    updatePdfStream(stream);
+                    LogHelper.WriteLog(typeof(PdfConvertExcelForm), "delete excel success-" + stream.id);
+                }
+                else
+                {
+                    //暂时只处理公告
+                    if (stream.doc_type == 13)
+                    {
+                        JobOrder order = new JobOrder();
+                        order.Filename = stream.pdf_path;
+                        order.stream = stream;
+                        orders.Add(order);
+                    }
+                    else 
+                    {
+                        //其他类型的暂时不改，然后把标志改为14(暂时不处理)
+                        stream.excel_flag = SysConstant.NO_DEAL;
+                        updatePdfStream(stream);
+                        LogHelper.WriteLog(typeof(PdfConvertExcelForm), "no deal stream id-" + stream.id);
+                    }
+                   
+                }
+                
             }
             reconstructionMode = ReconstructionMode.Flowing;
 
@@ -1011,7 +1030,7 @@ namespace WindowsFormsApplication1
             {
                 try
                 {
-                    PdfData pdfData = HttpUtil.getPdfStreamDataByLimit(200);
+                    PdfData pdfData = HttpUtil.getPdfStreamDataByPipeLining(50);
                     if (pdfData != null && pdfData.data != null && pdfData.data.Count > 0)
                     {
                         LogHelper.WriteLog(typeof(PdfConvertExcelForm), "start next convert");
@@ -1045,7 +1064,7 @@ namespace WindowsFormsApplication1
             try { 
                 List<PdfStream> pdfdata = new List<PdfStream>();
                 pdfdata.Add(stream);
-                return HttpUtil.updatePdfStreamData(pdfdata);
+                return HttpUtil.updatePdfStreamDataPipeLine(pdfdata);
             }
             catch (Exception ex)
             {

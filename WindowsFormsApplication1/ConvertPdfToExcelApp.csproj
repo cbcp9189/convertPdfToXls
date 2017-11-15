@@ -158,7 +158,11 @@
     <Compile Include="entity\PdfData.cs" />
     <Compile Include="entity\PdfStream.cs" />
     <Compile Include="entity\PdfModel.cs" />
+    <Compile Include="entity\PdfStreamInfo.cs" />
+    <Compile Include="entity\PdfStreamObj.cs" />
+    <Compile Include="entity\Response.cs" />
     <Compile Include="entity\ResultEntity.cs" />
+    <Compile Include="entity\RequestJson.cs" />
     <Compile Include="entity\TxtEntity.cs" />
     <Compile Include="entity\TableEntity.cs" />
     <Compile Include="entity\KeyValEntity.cs" />
@@ -193,6 +197,7 @@
     <Compile Include="util\HttpUtil.cs" />
     <Compile Include="util\LogHelper.cs" />
     <Compile Include="util\PathUtil.cs" />
+    <Compile Include="util\SFTPHelper.cs" />
     <Compile Include="util\SolidConvertUtil.cs" />
     <Compile Include="entity\SshConnectionInfo.cs" />
     <Compile Include="util\FileUtil.cs" />

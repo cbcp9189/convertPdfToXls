@@ -13,7 +13,6 @@ namespace WindowsFormsApplication1
     class SolidConvertUtil
     {
         
-
         public void pdfConvertExcel(String path, String excelPath)
         {
             try
